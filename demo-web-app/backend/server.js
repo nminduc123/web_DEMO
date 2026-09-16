@@ -1,23 +1,57 @@
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
-const dbConfig = { host: 'localhost', user: 'root', password: '', database: 'food_app' };
+const dbConfig = { host: 'localhost', port: 3306, user: 'root', password: '', database: 'food_app' };
 const otpStorage = {};
 
-// 1. API Lấy danh sách món ăn
-app.get('/api/foods', async (req, res) => {
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/'),
+    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+});
+const upload = multer({ storage: storage });
+
+// 1. CHỈ HIỂN THỊ CÁC QUÁN ĐÃ CHỌN "ĐẨY LÊN SÀN" (is_published = 1)
+app.get('/api/shops', async (req, res) => {
     const connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute('SELECT * FROM menu ORDER BY id DESC'); 
+    const [shops] = await connection.execute('SELECT id, shop_name, shop_category, is_open, avatar FROM users WHERE role = "seller" AND is_published = TRUE');
     await connection.end();
-    res.json(rows);
+    res.json(shops);
 });
 
-// 2. API Đăng nhập (Trả về role)
+// LẤY MENU CỦA 1 QUÁN (Có kiểm tra trạng thái và phân quyền)
+app.get('/api/foods/:sellerId', async (req, res) => {
+    const { role } = req.query; // Nhận thêm role để biết ai đang xem
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Lấy trạng thái mới nhất của quán
+    const [shops] = await connection.execute('SELECT is_published, is_open FROM users WHERE id = ?', [req.params.sellerId]);
+    
+    // BẢO MẬT: Nếu người xem là Khách (buyer) mà quán đã Ẩn -> Chặn ngay ở cửa!
+    // (Seller thì vẫn được xem để còn quản lý món)
+    if (role !== 'seller' && (shops.length === 0 || shops[0].is_published === 0)) {
+        await connection.end();
+        return res.status(400).json({ error: true, message: "Rất tiếc! Quán này vừa mới ẩn khỏi sàn hoặc ngừng hoạt động." });
+    }
+
+    const [rows] = await connection.execute('SELECT * FROM menu WHERE seller_id = ? ORDER BY id DESC', [req.params.sellerId]);
+    await connection.end();
+    
+    // Trả về dữ liệu kiểu mới: Bọc trong object kèm trạng thái mở cửa
+    res.json({ error: false, foods: rows, is_open: shops.length > 0 ? shops[0].is_open : 0 });
+});
+
+// ĐĂNG NHẬP (Lấy thêm trạng thái của quán trả về cho Seller)
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     const connection = await mysql.createConnection(dbConfig);
@@ -26,30 +60,43 @@ app.post('/api/login', async (req, res) => {
 
     if (users.length > 0) {
         if (!users[0].is_verified) return res.status(400).json({ success: false, message: "Tài khoản chưa xác thực OTP!" });
-        res.json({ success: true, user: { id: users[0].id, email: users[0].email, role: users[0].role } });
-    } else {
-        res.status(400).json({ success: false, message: "Sai email hoặc mật khẩu!" });
-    }
+        res.json({ 
+            success: true, 
+            user: { 
+                id: users[0].id, email: users[0].email, role: users[0].role, 
+                shop_name: users[0].shop_name, shop_category: users[0].shop_category,
+                is_published: !!users[0].is_published,
+                is_open: !!users[0].is_open,
+                avatar: users[0].avatar // Thêm dòng này
+            } 
+        });
+    } else res.status(400).json({ success: false, message: "Sai email hoặc mật khẩu!" });
 });
 
-// 3. API Đăng ký & Tạo OTP
 app.post('/api/register', async (req, res) => {
-    const { email, phone, password, verifyMethod } = req.body;
+    const { email, phone, password, verifyMethod, role, shopName, shopCategory } = req.body;
+    const userRole = role === 'seller' ? 'seller' : 'user'; 
+
     try {
         const connection = await mysql.createConnection(dbConfig);
-        await connection.execute('INSERT INTO users (email, phone, password) VALUES (?, ?, ?)', [email, phone, password]);
+        await connection.execute(
+            'INSERT INTO users (email, phone, password, role, shop_name, shop_category) VALUES (?, ?, ?, ?, ?, ?)', 
+            [email, phone, password, userRole, shopName || null, shopCategory || null]
+        );
         await connection.end();
         
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         otpStorage[email] = otp;
-        console.log(`\n🔑 [2FA] Đang gửi OTP qua ${verifyMethod.toUpperCase()} cho [${email}]: ${otp}\n`);
+        
+        // TRẢ LẠI DÒNG LOG HIỂN THỊ OTP CHO ÔNG ĐÂY =))
+        console.log(`\n🔑 [2FA] Đang gửi OTP cho [${email}]: ${otp}\n`);
+        
         res.json({ success: true, message: "Đã gửi mã OTP." });
-    } catch (error) {
-        res.status(400).json({ success: false, message: "Email hoặc SĐT đã tồn tại!" });
+    } catch (error) { 
+        res.status(400).json({ success: false, message: "Email hoặc SĐT đã tồn tại!" }); 
     }
 });
 
-// 4. API Xác thực OTP
 app.post('/api/verify-otp', async (req, res) => {
     const { email, otp } = req.body;
     if (otpStorage[email] === otp) {
@@ -61,83 +108,106 @@ app.post('/api/verify-otp', async (req, res) => {
     } else res.status(400).json({ success: false, message: "Mã OTP không hợp lệ!" });
 });
 
-// 5. API Quên mật khẩu
-app.post('/api/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    const connection = await mysql.createConnection(dbConfig);
-    const [users] = await connection.execute('SELECT * FROM users WHERE email = ?', [email]);
-    await connection.end();
-
-    if (users.length === 0) return res.status(404).json({ success: false, message: "Email không tồn tại!" });
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStorage[email] = otp;
-    console.log(`\n🔑 [QUÊN MẬT KHẨU] Mã OTP khôi phục cho [${email}]: ${otp}\n`);
-    res.json({ success: true, message: "Đã gửi mã OTP khôi phục." });
-});
-
-// 6. API Đổi mật khẩu
-app.post('/api/reset-password', async (req, res) => {
-    const { email, otp, newPassword } = req.body;
-    if (otpStorage[email] === otp) {
-        const connection = await mysql.createConnection(dbConfig);
-        await connection.execute('UPDATE users SET password = ? WHERE email = ?', [newPassword, email]);
-        await connection.end();
-        delete otpStorage[email];
-        res.json({ success: true, message: "Đổi mật khẩu thành công!" });
-    } else {
-        res.status(400).json({ success: false, message: "Mã OTP sai hoặc hết hạn!" });
-    }
-});
-
-// 7. API Checkout (Giỏ hàng)
-// 7. API Checkout (Giỏ hàng) - BẢN NÂNG CẤP CHẶN LỖI HẾT HÀNG
+// THANH TOÁN (Chặn nếu quán đóng cửa hoặc món hết hàng)
+// THANH TOÁN (Chặn nếu quán đóng cửa, ẩn khỏi sàn, hết hàng, hoặc món đã bị xóa)
+// THANH TOÁN (Tự động trả về ID các món lỗi để Frontend xóa khỏi giỏ)
 app.post('/api/checkout', async (req, res) => {
     const { userId, cart } = req.body;
-    
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
-        // Lấy danh sách ID của các món ăn trong giỏ
         const foodIds = cart.map(item => item.id);
         
-        // Query kiểm tra trạng thái 'is_sold_out' MỚI NHẤT thẳng từ DB
         const [menuRows] = await connection.execute(
-            `SELECT id, name, is_sold_out FROM menu WHERE id IN (${foodIds.map(() => '?').join(',')})`,
+            `SELECT id, name, is_sold_out, seller_id FROM menu WHERE id IN (${foodIds.map(() => '?').join(',')})`, 
             foodIds
         );
-        await connection.end();
 
-        // Lọc ra xem có món nào bị Seller chuyển sang Hết hàng không
-        const soldOutItems = menuRows.filter(row => row.is_sold_out === 1);
-        
-        if (soldOutItems.length > 0) {
-            // Nếu có món hết hàng -> Chặn thanh toán và báo lỗi
-            const soldOutNames = soldOutItems.map(item => item.name).join(', ');
+        // LỖI 1: Món ăn đã bị xóa khỏi Database
+        const existingFoodIds = menuRows.map(row => row.id);
+        const deletedItems = cart.filter(item => !existingFoodIds.includes(item.id));
+        if (deletedItems.length > 0) {
+            await connection.end();
             return res.status(400).json({ 
                 success: false, 
-                message: `Thanh toán thất bại!\n\nMón "${soldOutNames}" vừa mới hết hàng. Vui lòng quay lại Giỏ hàng để xóa món này trước khi thanh toán.`
+                message: `Thanh toán thất bại!\n\nCó món ăn đã bị chủ quán ngừng kinh doanh. Hệ thống sẽ tự động loại bỏ món này khỏi giỏ.`,
+                invalidIds: deletedItems.map(item => item.id) // Gửi ID lỗi về
             });
         }
 
-        // Nếu mọi thứ trong kho vẫn ổn -> Cho phép thanh toán
+        const sellerIds = [...new Set(menuRows.map(row => row.seller_id))];
+        const [shopRows] = await connection.execute(
+            `SELECT id, shop_name, is_open, is_published FROM users WHERE id IN (${sellerIds.map(() => '?').join(',')})`, 
+            sellerIds
+        );
+        await connection.end();
+
+        // LỖI 2: Quán Đóng cửa HOẶC Ẩn khỏi sàn
+        const unavailableShops = shopRows.filter(shop => shop.is_open === 0 || shop.is_published === 0);
+        if (unavailableShops.length > 0) {
+            const unavailableShopIds = unavailableShops.map(shop => shop.id);
+            // Tìm tất cả món ăn trong giỏ thuộc về cái quán bị ẩn/đóng cửa này
+            const invalidFoodIds = menuRows.filter(row => unavailableShopIds.includes(row.seller_id)).map(row => row.id);
+            
+            const shopNames = unavailableShops.map(shop => shop.shop_name).join(', ');
+            return res.status(400).json({ 
+                success: false, 
+                message: `Thanh toán thất bại!\n\nQuán "${shopNames}" hiện đang tạm nghỉ. Hệ thống sẽ tự động loại bỏ các món của quán này khỏi giỏ.`,
+                invalidIds: invalidFoodIds
+            });
+        }
+
+        // LỖI 3: Món ăn báo Hết hàng
+        const soldOutItems = menuRows.filter(row => row.is_sold_out === 1);
+        if (soldOutItems.length > 0) {
+            const soldOutNames = soldOutItems.map(item => item.name).join(', ');
+            return res.status(400).json({ 
+                success: false, 
+                message: `Thanh toán thất bại!\n\nMón "${soldOutNames}" vừa mới hết hàng. Hệ thống sẽ tự động loại bỏ món này khỏi giỏ.`,
+                invalidIds: soldOutItems.map(item => item.id)
+            });
+        }
+
         res.json({ success: true, message: "Đặt hàng thành công! Đơn của bạn đang được giao." });
-        
-    } catch (error) {
+    } catch (error) { 
         console.error(error);
-        res.status(500).json({ success: false, message: "Lỗi hệ thống khi thanh toán!" });
+        res.status(500).json({ success: false, message: "Lỗi hệ thống!" }); 
     }
 });
 
 // ==========================================
-// CÁC API DÀNH CHO SELLER
+// API DÀNH RIÊNG CHO SELLER
 // ==========================================
-app.post('/api/seller/add-food', async (req, res) => {
-    const { name, price, img } = req.body;
+
+// Bật/Tắt trạng thái Quán
+app.post('/api/seller/toggle-shop', async (req, res) => {
+    const { sellerId, is_published, is_open } = req.body;
     const connection = await mysql.createConnection(dbConfig);
-    await connection.execute('INSERT INTO menu (name, price, img, is_sold_out) VALUES (?, ?, ?, false)', [name, price, img]);
+    await connection.execute('UPDATE users SET is_published = ?, is_open = ? WHERE id = ?', [is_published, is_open, sellerId]);
+    await connection.end();
+    res.json({ success: true });
+});
+
+app.post('/api/seller/add-food', upload.single('image'), async (req, res) => {
+    const { name, price, sellerId } = req.body;
+    const imgUrl = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : '';
+    const connection = await mysql.createConnection(dbConfig);
+    await connection.execute('INSERT INTO menu (name, price, img, is_sold_out, seller_id) VALUES (?, ?, ?, false, ?)', [name, price, imgUrl, sellerId]);
     await connection.end();
     res.json({ success: true, message: "Thêm món thành công!" });
+});
+
+app.put('/api/seller/update-food/:id', upload.single('image'), async (req, res) => {
+    const { id } = req.params;
+    const { name, price } = req.body;
+    const connection = await mysql.createConnection(dbConfig);
+    if (req.file) {
+        const imgUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+        await connection.execute('UPDATE menu SET name = ?, price = ?, img = ? WHERE id = ?', [name, price, imgUrl, id]);
+    } else {
+        await connection.execute('UPDATE menu SET name = ?, price = ? WHERE id = ?', [name, price, id]);
+    }
+    await connection.end();
+    res.json({ success: true, message: "Cập nhật thành công!" });
 });
 
 app.post('/api/seller/toggle-status', async (req, res) => {
@@ -148,32 +218,24 @@ app.post('/api/seller/toggle-status', async (req, res) => {
     res.json({ success: true });
 });
 
-// Xóa món ăn khỏi Menu
 app.delete('/api/seller/delete-food/:id', async (req, res) => {
     const { id } = req.params;
     const connection = await mysql.createConnection(dbConfig);
-    // Chạy lệnh SQL xóa dòng có id tương ứng
     await connection.execute('DELETE FROM menu WHERE id = ?', [id]);
     await connection.end();
-    
-    console.log(`-> [BE] Seller vừa xóa vĩnh viễn món có ID: ${id}`);
     res.json({ success: true, message: "Đã xóa món ăn thành công!" });
 });
 
-// Cập nhật thông tin món ăn
-app.put('/api/seller/update-food/:id', async (req, res) => {
-    const { id } = req.params;
-    const { name, price, img } = req.body;
+app.post('/api/seller/update-avatar', upload.single('avatar'), async (req, res) => {
+    const { sellerId } = req.body;
+    if (!req.file) return res.status(400).json({ success: false, message: "Vui lòng chọn ảnh!" });
     
+    const avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
     try {
         const connection = await mysql.createConnection(dbConfig);
-        await connection.execute(
-            'UPDATE menu SET name = ?, price = ?, img = ? WHERE id = ?',
-            [name, price, img, id]
-        );
+        await connection.execute('UPDATE users SET avatar = ? WHERE id = ?', [avatarUrl, sellerId]);
         await connection.end();
-        console.log(`-> [BE] Seller vừa cập nhật thông tin món ID: ${id}`);
-        res.json({ success: true, message: "Cập nhật món ăn thành công!" });
+        res.json({ success: true, avatarUrl, message: "Cập nhật ảnh đại diện thành công!" });
     } catch (error) {
         res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
     }
