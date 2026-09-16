@@ -20,6 +20,8 @@ SET time_zone = "+00:00";
 --
 -- Cơ sở dữ liệu: `food_app`
 --
+CREATE DATABASE IF NOT EXISTS food_app DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE food_app;
 
 -- --------------------------------------------------------
 
