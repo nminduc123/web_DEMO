@@ -63,11 +63,11 @@ app.post('/api/login', async (req, res) => {
         res.json({ 
             success: true, 
             user: { 
-                id: users[0].id, email: users[0].email, role: users[0].role, 
+                id: users[0].id, email: users[0].email, role: users[0].role, phone: users[0].phone,
                 shop_name: users[0].shop_name, shop_category: users[0].shop_category,
                 is_published: !!users[0].is_published,
                 is_open: !!users[0].is_open,
-                avatar: users[0].avatar // Thêm dòng này
+                avatar: users[0].avatar
             } 
         });
     } else res.status(400).json({ success: false, message: "Sai email hoặc mật khẩu!" });
@@ -112,7 +112,9 @@ app.post('/api/verify-otp', async (req, res) => {
 // THANH TOÁN (Chặn nếu quán đóng cửa, ẩn khỏi sàn, hết hàng, hoặc món đã bị xóa)
 // THANH TOÁN (Tự động trả về ID các món lỗi để Frontend xóa khỏi giỏ)
 app.post('/api/checkout', async (req, res) => {
-    const { userId, cart } = req.body;
+    // 1. LẤY THÊM PAYMENT METHOD VÀ TOTAL PRICE TỪ FRONTEND
+    const { userId, cart, paymentMethod, totalPrice } = req.body; 
+    
     try {
         const connection = await mysql.createConnection(dbConfig);
         const foodIds = cart.map(item => item.id);
@@ -139,11 +141,13 @@ app.post('/api/checkout', async (req, res) => {
             `SELECT id, shop_name, is_open, is_published FROM users WHERE id IN (${sellerIds.map(() => '?').join(',')})`, 
             sellerIds
         );
-        await connection.end();
+        
+        // 2. ĐÃ XÓA DÒNG await connection.end() Ở ĐÂY ĐỂ GIỮ KẾT NỐI LƯU DATA
 
         // LỖI 2: Quán Đóng cửa HOẶC Ẩn khỏi sàn
         const unavailableShops = shopRows.filter(shop => shop.is_open === 0 || shop.is_published === 0);
         if (unavailableShops.length > 0) {
+            await connection.end(); // 3. THÊM ĐÓNG KẾT NỐI VÀO ĐÂY NẾU BỊ LỖI
             const unavailableShopIds = unavailableShops.map(shop => shop.id);
             // Tìm tất cả món ăn trong giỏ thuộc về cái quán bị ẩn/đóng cửa này
             const invalidFoodIds = menuRows.filter(row => unavailableShopIds.includes(row.seller_id)).map(row => row.id);
@@ -159,6 +163,7 @@ app.post('/api/checkout', async (req, res) => {
         // LỖI 3: Món ăn báo Hết hàng
         const soldOutItems = menuRows.filter(row => row.is_sold_out === 1);
         if (soldOutItems.length > 0) {
+            await connection.end(); // 4. THÊM ĐÓNG KẾT NỐI VÀO ĐÂY NẾU BỊ LỖI
             const soldOutNames = soldOutItems.map(item => item.name).join(', ');
             return res.status(400).json({ 
                 success: false, 
@@ -167,6 +172,16 @@ app.post('/api/checkout', async (req, res) => {
             });
         }
 
+        // 5. QUA HẾT TRẠM KIỂM TRA -> CHÍNH THỨC LƯU ĐƠN VÀO BẢNG ORDERS
+        const sellerId = menuRows[0].seller_id; // Lấy ID quán từ món đầu tiên
+        const cartDetails = JSON.stringify(cart);
+        
+        await connection.execute(
+            'INSERT INTO orders (user_id, seller_id, cart_details, total_price, payment_method) VALUES (?, ?, ?, ?, ?)',
+            [userId, sellerId, cartDetails, totalPrice, paymentMethod || 'COD']
+        );
+
+        await connection.end(); // LƯU XONG MỚI ĐÓNG KẾT NỐI TẠI ĐÂY
         res.json({ success: true, message: "Đặt hàng thành công! Đơn của bạn đang được giao." });
     } catch (error) { 
         console.error(error);
@@ -177,6 +192,32 @@ app.post('/api/checkout', async (req, res) => {
 // ==========================================
 // API DÀNH RIÊNG CHO SELLER
 // ==========================================
+
+// SELLER LẤY DANH SÁCH ĐƠN HÀNG
+app.get('/api/seller/orders', async (req, res) => {
+    const { sellerId } = req.query;
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        const [orders] = await connection.execute('SELECT * FROM orders WHERE seller_id = ? ORDER BY created_at DESC', [sellerId]);
+        await connection.end();
+        res.json({ success: true, orders });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Lỗi lấy đơn hàng" });
+    }
+});
+
+// SELLER CẬP NHẬT TRẠNG THÁI ĐƠN (Ví dụ: pending -> accepted -> completed)
+app.post('/api/seller/update-order-status', async (req, res) => {
+    const { orderId, status } = req.body;
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        await connection.execute('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
+        await connection.end();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false });
+    }
+});
 
 // Bật/Tắt trạng thái Quán
 app.post('/api/seller/toggle-shop', async (req, res) => {
@@ -236,6 +277,44 @@ app.post('/api/seller/update-avatar', upload.single('avatar'), async (req, res) 
         await connection.execute('UPDATE users SET avatar = ? WHERE id = ?', [avatarUrl, sellerId]);
         await connection.end();
         res.json({ success: true, avatarUrl, message: "Cập nhật ảnh đại diện thành công!" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
+    }
+});
+
+// CẬP NHẬT THÔNG TIN TÀI KHOẢN (AVATAR & SĐT)
+app.post('/api/user/update-profile', upload.single('avatar'), async (req, res) => {
+    const { userId, phone } = req.body;
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        if (req.file) {
+            const avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+            await connection.execute('UPDATE users SET phone = ?, avatar = ? WHERE id = ?', [phone, avatarUrl, userId]);
+            await connection.end();
+            res.json({ success: true, avatarUrl, message: "Cập nhật thành công!" });
+        } else {
+            await connection.execute('UPDATE users SET phone = ? WHERE id = ?', [phone, userId]);
+            await connection.end();
+            res.json({ success: true, message: "Cập nhật thành công!" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
+    }
+});
+
+// ĐỔI MẬT KHẨU
+app.post('/api/user/change-password', async (req, res) => {
+    const { userId, oldPassword, newPassword } = req.body;
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        const [users] = await connection.execute('SELECT * FROM users WHERE id = ? AND password = ?', [userId, oldPassword]);
+        if (users.length === 0) {
+            await connection.end();
+            return res.status(400).json({ success: false, message: "Mật khẩu cũ không chính xác!" });
+        }
+        await connection.execute('UPDATE users SET password = ? WHERE id = ?', [newPassword, userId]);
+        await connection.end();
+        res.json({ success: true, message: "Đổi mật khẩu thành công!" });
     } catch (error) {
         res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
     }
