@@ -2,11 +2,50 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
+    // KHAI BÁO AVATAR MẶC ĐỊNH
+    const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+    // State cho Dropdown Menu và Đổi mật khẩu
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+
+    // Hàm xử lý đổi mật khẩu
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        if (newPassword !== confirmPassword) return alert("Mật khẩu nhập lại không khớp!");
+        const res = await fetch('http://localhost:5000/api/user/change-password', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id, oldPassword, newPassword })
+        });
+        const data = await res.json();
+        alert(data.message);
+        if (data.success) {
+            setOldPassword(''); setNewPassword(''); setConfirmPassword('');
+            setView(currentUser.role === 'seller' ? 'seller-dashboard' : 'shop-list'); // Đổi xong quay về trang chủ
+        }
+    };
+    // BIẾN CHO PHƯƠNG THỨC THANH TOÁN VÀ MÃ QR
+    const [paymentMethod, setPaymentMethod] = useState('COD');
+    const [showQR, setShowQR] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(180); // 180 giây = 3 phút
+
     const [view, setView] = useState('login'); 
     const [shops, setShops] = useState([]);
     const [selectedShop, setSelectedShop] = useState(null);
     const [foods, setFoods] = useState([]);
-    const [cart, setCart] = useState([]);
+    const [editPhone, setEditPhone] = useState('');
+    // KHỞI TẠO GIỎ HÀNG TỪ Ổ CỨNG (NẾU CÓ)
+    const [cart, setCart] = useState(() => {
+        const savedCart = localStorage.getItem('foodAppCart');
+        return savedCart ? JSON.parse(savedCart) : [];
+    });
+
+    // TỰ ĐỘNG LƯU VÀO Ổ CỨNG MỖI KHI GIỎ HÀNG THAY ĐỔI
+    useEffect(() => {
+        localStorage.setItem('foodAppCart', JSON.stringify(cart));
+    }, [cart]);
     const [currentUser, setCurrentUser] = useState(null);
 
     const [email, setEmail] = useState('');
@@ -21,6 +60,43 @@ function App() {
     const [newFoodPrice, setNewFoodPrice] = useState('');
     const [newFoodImgFile, setNewFoodImgFile] = useState(null);
     const [editFoodId, setEditFoodId] = useState(null);
+
+    // STATE CHO QUẢN LÝ ĐƠN HÀNG CỦA SELLER
+    const [sellerOrders, setSellerOrders] = useState([]);
+    const [activeSellerTab, setActiveSellerTab] = useState('menu'); // 'menu' hoặc 'orders'
+
+    // HÀM LẤY ĐƠN HÀNG & AUTO REFRESH (Làm chấm đỏ thời gian thực)
+    const fetchSellerOrders = async () => {
+        if (currentUser?.role === 'seller') {
+            try {
+                const res = await fetch(`http://localhost:5000/api/seller/orders?sellerId=${currentUser.id}`);
+                const data = await res.json();
+                if (data.success) setSellerOrders(data.orders);
+            } catch (err) { console.log(err); }
+        }
+    };
+
+    // Tự động quét đơn mới mỗi 5 giây khi đang ở trang chủ quán
+    useEffect(() => {
+        if (view === 'seller-dashboard' && currentUser?.role === 'seller') {
+            fetchSellerOrders();
+            const interval = setInterval(fetchSellerOrders, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [view, currentUser]);
+
+    // HÀM ĐỔI TRẠNG THÁI ĐƠN HÀNG
+    const handleUpdateOrderStatus = async (orderId, status) => {
+        const res = await fetch('http://localhost:5000/api/seller/update-order-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId, status })
+        });
+        if (res.ok) fetchSellerOrders();
+    };
+
+    // KIỂM TRA XEM CÓ ĐƠN NÀO MỚI TINH (pending) ĐỂ HIỆN CHẤM ĐỎ KHÔNG
+    const hasNewOrders = sellerOrders.some(order => order.status === 'pending');
 
     // State cho Avatar
     const [avatarFile, setAvatarFile] = useState(null);
@@ -41,6 +117,62 @@ function App() {
             localStorage.setItem('foodAppUser', JSON.stringify(updatedUser)); // Lưu lại vào local
             setAvatarFile(null);
             document.getElementById('avatarInput').value = ''; // Reset ô chọn file
+        } else {
+            alert(data.message);
+        }
+    };
+
+    // XỬ LÝ ĐẾM NGƯỢC THỜI GIAN MÃ QR (Dán ngay dưới handleUpdateAvatar)
+    useEffect(() => {
+        let timer;
+        if (showQR && timeLeft > 0) {
+            timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        } else if (showQR && timeLeft === 0) {
+            alert("⏳ Đã hết 3 phút! Giao dịch bị hủy do chưa thanh toán.");
+            setShowQR(false);
+            setPaymentMethod('COD'); // Trả lại mặc định
+        }
+        return () => clearInterval(timer);
+    }, [showQR, timeLeft]);
+
+    // HÀM ĐỔI GIÂY THÀNH ĐỊNH DẠNG PHÚT:GIÂY (VD: 02:59)
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
+    // HÀM TRẠM TRUNG CHUYỂN THANH TOÁN
+    const triggerCheckout = () => {
+        if (cart.length === 0) return alert("Giỏ hàng trống!");
+        
+        if (paymentMethod === 'COD') {
+            // Nếu là COD thì gọi hàm thanh toán cũ của ông để chốt đơn luôn
+            handleCheckout(); 
+        } else {
+            // Nếu là CK thì bật QR và reset đồng hồ 3 phút (180s)
+            setTimeLeft(180); 
+            setShowQR(true);  
+        }
+    };
+
+    // Cập nhật thông tin cá nhân (số điện thoại)
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('userId', currentUser.id);
+        formData.append('phone', editPhone);
+        if (avatarFile) formData.append('avatar', avatarFile);
+
+        const res = await fetch('http://localhost:5000/api/user/update-profile', { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert(data.message);
+            const updatedUser = { ...currentUser, phone: editPhone, avatar: data.avatarUrl || currentUser.avatar };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('foodAppUser', JSON.stringify(updatedUser));
+            setAvatarFile(null);
         } else {
             alert(data.message);
         }
@@ -114,10 +246,22 @@ function App() {
 
     const handleCheckout = async () => {
         if (cart.length === 0) return alert("Giỏ hàng trống!");
+        
+        // Tính toán tổng tiền của giỏ hàng hiện tại
+        const calculatedTotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+
         const res = await fetch('http://localhost:5000/api/checkout', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.id, cart })
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            // THÊM PAYMENT METHOD VÀ TOTAL PRICE VÀO ĐÂY
+            body: JSON.stringify({ 
+                userId: currentUser.id, 
+                cart: cart,
+                paymentMethod: paymentMethod, 
+                totalPrice: calculatedTotal
+            })
         });
+        
         const data = await res.json();
         
         if (data.success) { 
@@ -256,16 +400,83 @@ function App() {
                     }} style={{cursor: 'pointer'}}>
                         {currentUser?.role === 'seller' ? `Gian Hàng: ${currentUser.shop_name}` : 'Shopee Food Fake 🍔'}
                     </h2>
-                    <div className="nav-right">
-                        <span>Xin chào, {currentUser?.email}</span>
+                    
+                    <div className="nav-right" style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
                         {currentUser?.role === 'user' && (
                             <button className="cart-btn" onClick={() => setView('cart')}>🛒 Giỏ hàng ({totalItems})</button>
                         )}
-                        <button className="logout-btn" onClick={() => {
-                            if(window.confirm("Thoát tài khoản?")) { setCurrentUser(null); setCart([]); localStorage.removeItem('foodAppUser'); setView('login'); }
-                        }}>Thoát</button>
+
+                        {/* CỤM AVATAR VÀ DROPDOWN MENU */}
+                        <div style={{ position: 'relative' }}>
+                            <div 
+                                onClick={() => setShowDropdown(!showDropdown)} 
+                                style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '5px 12px', background: '#f0f2f5', borderRadius: '20px', transition: '0.2s'}}
+                            >
+                                <img 
+                                    src={(currentUser?.avatar && currentUser.avatar !== 'null' && currentUser.avatar !== '') ? currentUser.avatar : 'https://i.imgur.com/V4RclNb.png'} 
+                                    alt="avatar" 
+                                    style={{width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '1px solid #ccc', backgroundColor: '#fff'}} 
+                                    onError={(e) => { e.target.src = 'https://i.imgur.com/V4RclNb.png' }}
+                                />
+                                <span style={{fontWeight: '500', color: '#333'}}>{currentUser?.email}</span>
+                                <span style={{fontSize: '12px', color: '#666'}}>▼</span>
+                            </div>
+
+                            {/* BẢNG MENU THẢ XUỐNG */}
+                            {showDropdown && (
+                                <div style={{
+                                    position: 'absolute', top: '120%', right: 0, 
+                                    background: '#fff', borderRadius: '8px', boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+                                    width: '200px', overflow: 'hidden', zIndex: 100, border: '1px solid #eee'
+                                }}>
+                                    <div 
+                                        onClick={() => { setEditPhone(currentUser.phone || ''); setView('profile'); setShowDropdown(false); }}
+                                        style={{padding: '12px 15px', cursor: 'pointer', borderBottom: '1px solid #eee'}}
+                                    >
+                                        👤 Thông tin tài khoản
+                                    </div>
+                                    
+                                    <div 
+                                        onClick={() => { setView('change-password'); setShowDropdown(false); }}
+                                        style={{padding: '12px 15px', cursor: 'pointer', borderBottom: '1px solid #eee'}}
+                                    >
+                                        🔑 Đổi mật khẩu
+                                    </div>
+                                    
+                                    <div 
+                                        onClick={() => {
+                                            setShowDropdown(false);
+                                            if(window.confirm("Thoát tài khoản?")) { 
+                                                setCurrentUser(null); setCart([]); 
+                                                localStorage.removeItem('foodAppUser'); localStorage.removeItem('foodAppCart'); 
+                                                setView('login'); 
+                                            }
+                                        }}
+                                        style={{padding: '12px 15px', cursor: 'pointer', color: '#ff4d4f', fontWeight: 'bold'}}
+                                    >
+                                        🚪 Đăng xuất
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </nav>
+            )}
+
+            {/* MÀN HÌNH ĐỔI MẬT KHẨU */}
+            {view === 'change-password' && (
+                <div style={{maxWidth: '400px', margin: '0 auto', background: '#fff', padding: '30px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                        <h2 style={{margin: 0}}>Đổi Mật Khẩu</h2>
+                        <button className="btn-back" onClick={() => setView(currentUser.role === 'seller' ? 'seller-dashboard' : 'shop-list')}>← Trở lại</button>
+                    </div>
+                    <form onSubmit={handleChangePassword} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
+                        <input type="password" placeholder="Mật khẩu cũ" required value={oldPassword} onChange={e => setOldPassword(e.target.value)} style={{padding: '12px', border: '1px solid #ccc', borderRadius: '5px'}}/>
+                        <input type="password" placeholder="Mật khẩu mới" required value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{padding: '12px', border: '1px solid #ccc', borderRadius: '5px'}}/>
+                        <input type="password" placeholder="Nhập lại mật khẩu mới" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={{padding: '12px', border: '1px solid #ccc', borderRadius: '5px'}}/>
+                        <button type="submit" className="btn-primary" style={{marginTop: '10px', padding: '12px'}}>Xác Nhận Đổi</button>
+                    </form>
+                </div>
             )}
 
             <div className="content">
@@ -311,6 +522,45 @@ function App() {
                         <input type="text" placeholder="Nhập mã OTP 6 số" required onChange={e => setOtp(e.target.value)} />
                         <button type="submit" className="btn-primary">Xác Nhận</button>
                     </form>
+                )}
+
+                {/* TRANG THÔNG TIN TÀI KHOẢN (PROFILE) */}
+                {view === 'profile' && (
+                    <div style={{maxWidth: '500px', margin: '0 auto', background: '#fff', padding: '30px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                            <h2 style={{margin: 0}}>Hồ Sơ Cá Nhân</h2>
+                            <button className="btn-back" onClick={() => setView(currentUser.role === 'seller' ? 'seller-dashboard' : 'shop-list')}>← Trở lại</button>
+                        </div>
+                        
+                        <form onSubmit={handleUpdateProfile} style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+                            <div style={{textAlign: 'center'}}>
+                                <img 
+                                    src={currentUser.avatar || 'https://via.placeholder.com/100?text=U'} 
+                                    alt="Avatar" 
+                                    style={{width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '3px solid #ee4d2d', marginBottom: '10px'}} 
+                                />
+                                <br />
+                                <input type="file" accept="image/*" onChange={e => setAvatarFile(e.target.files[0])} style={{fontSize: '13px'}} />
+                            </div>
+
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
+                                <label style={{fontWeight: 'bold', color: '#555'}}>Email (Không thể đổi):</label>
+                                <input type="email" value={currentUser.email} disabled style={{padding: '10px', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: '5px', color: '#999'}} />
+                            </div>
+
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
+                                <label style={{fontWeight: 'bold', color: '#555'}}>Số điện thoại:</label>
+                                <input type="text" value={editPhone} onChange={e => setEditPhone(e.target.value)} required style={{padding: '10px', border: '1px solid #ccc', borderRadius: '5px'}} />
+                            </div>
+
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
+                                <label style={{fontWeight: 'bold', color: '#555'}}>Loại tài khoản:</label>
+                                <input type="text" value={currentUser.role === 'seller' ? `Chủ quán (${currentUser.shop_name})` : 'Khách hàng'} disabled style={{padding: '10px', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: '5px', color: '#999'}} />
+                            </div>
+
+                            <button type="submit" className="btn-primary" style={{marginTop: '10px', padding: '12px'}}>💾 Lưu Cập Nhật</button>
+                        </form>
+                    </div>
                 )}
 
                 {/* BUYER: MÀN HÌNH CHỌN QUÁN */}
@@ -413,9 +663,27 @@ function App() {
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* KHỐI CHỌN PHƯƠNG THỨC THANH TOÁN (MỚI THÊM) */}
+                                <div style={{ marginTop: '20px', padding: '15px', background: '#f0f2f5', borderRadius: '8px', textAlign: 'left' }}>
+                                    <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Phương thức thanh toán:</h3>
+                                    <div style={{ display: 'flex', gap: '20px' }}>
+                                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <input type="radio" name="payment" value="COD" checked={paymentMethod === 'COD'} onChange={(e) => setPaymentMethod(e.target.value)} />
+                                            Thanh toán khi nhận hàng (COD)
+                                        </label>
+                                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <input type="radio" name="payment" value="CK" checked={paymentMethod === 'CK'} onChange={(e) => setPaymentMethod(e.target.value)} />
+                                            Chuyển khoản (Quét mã QR)
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <div className="cart-total">
                                     <h3>Tổng thanh toán: <span className="price">{totalPrice.toLocaleString('vi-VN')}đ</span></h3>
-                                    <button className="btn-checkout" onClick={handleCheckout}>Tiến hành thanh toán</button>
+                                    
+                                    {/* ĐỔI SANG DÙNG triggerCheckout THAY VÌ handleCheckout */}
+                                    <button className="btn-checkout" onClick={triggerCheckout}>Tiến hành thanh toán</button>
                                 </div>
                             </div>
                         )}
@@ -423,89 +691,204 @@ function App() {
                 )}
 
                 {/* SELLER DASHBOARD CÓ BẢNG ĐIỀU KHIỂN */}
+                {/* GIAO DIỆN CHỦ QUÁN (SELLER DASHBOARD) */}
                 {view === 'seller-dashboard' && (
                     <div className="seller-container">
                         
-                        {/* PANEL QUẢN LÝ TRẠNG THÁI & AVATAR QUÁN */}
-                        <div style={{ background: '#fff', padding: 20, borderRadius: 8, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    {/* Hiển thị Avatar hiện tại */}
-                                    <img 
-                                        src={currentUser.avatar || 'https://via.placeholder.com/80?text=Shop'} 
-                                        alt="Avatar Shop" 
-                                        style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #ee4d2d' }} 
-                                    />
-                                    <div>
-                                        <h3 style={{margin: 0}}>⚙️ Quản lý hoạt động</h3>
-                                        <p style={{fontSize: 14, color: '#666', marginTop: 5}}>Chỉ khi Đẩy lên sàn & Mở cửa khách mới mua được hàng.</p>
-                                        
-                                        {/* Nút Upload Avatar */}
-                                        <div style={{ marginTop: 8, display: 'flex', gap: 10 }}>
-                                            <input type="file" accept="image/*" id="avatarInput" onChange={e => setAvatarFile(e.target.files[0])} style={{ fontSize: 13, width: '180px' }} />
-                                            <button onClick={handleUpdateAvatar} style={{ padding: '4px 10px', background: '#333', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Đổi Avatar</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div style={{display: 'flex', gap: 15}}>
-                                    <button 
-                                        onClick={() => toggleShopSettings('is_published', currentUser.is_published)}
-                                        style={{ padding: '10px 15px', borderRadius: 5, border: 'none', cursor: 'pointer', fontWeight: 'bold', background: currentUser.is_published ? '#52c41a' : '#d9d9d9', color: currentUser.is_published ? '#fff' : '#333' }}>
-                                        {currentUser.is_published ? '✅ Đang Hiện Sàn' : '👁️ Đã Ẩn Khỏi Sàn'}
-                                    </button>
-                                    <button 
-                                        onClick={() => toggleShopSettings('is_open', currentUser.is_open)}
-                                        style={{ padding: '10px 15px', borderRadius: 5, border: 'none', cursor: 'pointer', fontWeight: 'bold', background: currentUser.is_open ? '#1890ff' : '#ff4d4f', color: '#fff' }}>
-                                        {currentUser.is_open ? '🟢 Đang Mở Cửa' : '🔴 Đang Đóng Cửa'}
-                                    </button>
-                                </div>
+                        {/* THANH ĐIỀU HƯỚNG TAB: THỰC ĐƠN & ĐƠN HÀNG */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+                            <h2 style={{ margin: 0 }}>Quản lý Quán: <span style={{color: '#ee4d2d'}}>{currentUser?.shop_name}</span></h2>
+                            
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button 
+                                    onClick={() => setActiveSellerTab('menu')}
+                                    style={{ padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer', background: activeSellerTab === 'menu' ? '#ee4d2d' : '#e0e0e0', color: activeSellerTab === 'menu' ? '#fff' : '#333', fontWeight: 'bold' }}
+                                >
+                                    📋 Thực Đơn
+                                </button>
+                                <button 
+                                    onClick={() => setActiveSellerTab('orders')}
+                                    style={{ position: 'relative', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer', background: activeSellerTab === 'orders' ? '#ee4d2d' : '#e0e0e0', color: activeSellerTab === 'orders' ? '#fff' : '#333', fontWeight: 'bold' }}
+                                >
+                                    📦 Đơn Hàng
+                                    {/* CHẤM ĐỎ BÁO ĐƠN MỚI */}
+                                    {hasNewOrders && (
+                                        <span style={{ position: 'absolute', top: '-5px', right: '-5px', width: '12px', height: '12px', background: 'red', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 5px rgba(255,0,0,0.5)' }}></span>
+                                    )}
+                                </button>
                             </div>
                         </div>
 
-                        {/* Form thêm món */}
-                        <form className="add-food-form" onSubmit={handleAddOrUpdateFood} style={{ border: editFoodId ? '2px solid #1890ff' : 'none' }}>
-                            <h3 style={{ color: editFoodId ? '#1890ff' : '#333' }}>
-                                {editFoodId ? '✏️ Cập nhật thông tin món ăn' : '➕ Thêm món ăn mới'}
-                            </h3>
-                            <div className="form-row" style={{ alignItems: 'center' }}>
-                                <input type="text" placeholder="Tên món ăn" required value={newFoodName} onChange={e => setNewFoodName(e.target.value)} />
-                                <input type="number" placeholder="Giá tiền (VNĐ)" required value={newFoodPrice} onChange={e => setNewFoodPrice(e.target.value)} />
-                                <input type="file" accept="image/*" id="fileInput" onChange={e => setNewFoodImgFile(e.target.files[0])} style={{ flex: 1, padding: '7px' }} />
-                                <button type="submit" className="btn-primary" style={{width: 'auto', background: editFoodId ? '#1890ff' : '#ee4d2d'}}>
-                                    {editFoodId ? 'Cập nhật' : 'Thêm món'}
-                                </button>
-                                {editFoodId && (
-                                    <button type="button" onClick={cancelEdit} style={{ padding: '0 15px', border: '1px solid #ccc', background: 'white', borderRadius: '4px', cursor: 'pointer', height: '100%' }}>Hủy</button>
-                                )}
-                            </div>
-                        </form>
-
-                        <h3>📋 Quản lý Menu của {currentUser.shop_name}</h3>
-                        <div className="food-grid">
-                            {foods.length === 0 ? <p>Chưa có món nào trong kho.</p> : foods.map(food => (
-                                <div key={food.id} className={`food-card ${food.is_sold_out ? 'card-dimmed' : ''}`}>
-                                    <img src={food.img} alt={food.name} />
-                                    <div className="food-info">
-                                        <h3>{food.name}</h3>
-                                        <p className="price">{food.price.toLocaleString('vi-VN')}đ</p>
-                                        <p style={{marginBottom: 10}}>Trạng thái: <strong>{food.is_sold_out ? '🔴 Hết hàng' : '🟢 Đang bán'}</strong></p>
-                                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                                            <button className={food.is_sold_out ? "btn-open" : "btn-sold-out"} onClick={() => toggleFoodStatus(food)} style={{ flex: 1 }}>
-                                                {food.is_sold_out ? 'Mở bán' : 'Báo hết'}
+                        {/* ========================================= */}
+                        {/* TAB 1: QUẢN LÝ THỰC ĐƠN VÀ TRẠNG THÁI QUÁN */}
+                        {/* ========================================= */}
+                        {activeSellerTab === 'menu' && (
+                            <>
+                                {/* PANEL QUẢN LÝ TRẠNG THÁI & AVATAR QUÁN */}
+                                <div style={{ background: '#fff', padding: 20, borderRadius: 8, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                            <img 
+                                                src={currentUser.avatar || 'https://via.placeholder.com/80?text=Shop'} 
+                                                alt="Avatar Shop" 
+                                                style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #ee4d2d' }} 
+                                            />
+                                            <div>
+                                                <h3 style={{margin: 0}}>⚙️ Quản lý hoạt động</h3>
+                                                <p style={{fontSize: 14, color: '#666', marginTop: 5}}>Chỉ khi Đẩy lên sàn & Mở cửa khách mới mua được hàng.</p>
+                                                <div style={{ marginTop: 8, display: 'flex', gap: 10 }}>
+                                                    <input type="file" accept="image/*" id="avatarInput" onChange={e => setAvatarFile(e.target.files[0])} style={{ fontSize: 13, width: '180px' }} />
+                                                    <button onClick={handleUpdateAvatar} style={{ padding: '4px 10px', background: '#333', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Đổi Avatar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style={{display: 'flex', gap: 15}}>
+                                            <button 
+                                                onClick={() => toggleShopSettings('is_published', currentUser.is_published)}
+                                                style={{ padding: '10px 15px', borderRadius: 5, border: 'none', cursor: 'pointer', fontWeight: 'bold', background: currentUser.is_published ? '#52c41a' : '#d9d9d9', color: currentUser.is_published ? '#fff' : '#333' }}>
+                                                {currentUser.is_published ? '✅ Đang Hiện Sàn' : '👁️ Đã Ẩn Khỏi Sàn'}
+                                            </button>
+                                            <button 
+                                                onClick={() => toggleShopSettings('is_open', currentUser.is_open)}
+                                                style={{ padding: '10px 15px', borderRadius: 5, border: 'none', cursor: 'pointer', fontWeight: 'bold', background: currentUser.is_open ? '#1890ff' : '#ff4d4f', color: '#fff' }}>
+                                                {currentUser.is_open ? '🟢 Đang Mở Cửa' : '🔴 Đang Đóng Cửa'}
                                             </button>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            <button onClick={() => handleEditClick(food)} style={{ flex: 1, padding: '8px', background: '#1890ff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Sửa</button>
-                                            <button className="btn-remove" onClick={() => handleDeleteFood(food.id, food.name)} style={{ flex: 1, padding: '8px', background: '#ff4d4f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Xóa</button>
-                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+
+                                {/* Form thêm món */}
+                                <form className="add-food-form" onSubmit={handleAddOrUpdateFood} style={{ border: editFoodId ? '2px solid #1890ff' : 'none' }}>
+                                    <h3 style={{ color: editFoodId ? '#1890ff' : '#333' }}>
+                                        {editFoodId ? '✏️ Cập nhật thông tin món ăn' : '➕ Thêm món ăn mới'}
+                                    </h3>
+                                    <div className="form-row" style={{ alignItems: 'center' }}>
+                                        <input type="text" placeholder="Tên món ăn" required value={newFoodName} onChange={e => setNewFoodName(e.target.value)} />
+                                        <input type="number" placeholder="Giá tiền (VNĐ)" required value={newFoodPrice} onChange={e => setNewFoodPrice(e.target.value)} />
+                                        <input type="file" accept="image/*" id="fileInput" onChange={e => setNewFoodImgFile(e.target.files[0])} style={{ flex: 1, padding: '7px' }} />
+                                        <button type="submit" className="btn-primary" style={{width: 'auto', background: editFoodId ? '#1890ff' : '#ee4d2d'}}>
+                                            {editFoodId ? 'Cập nhật' : 'Thêm món'}
+                                        </button>
+                                        {editFoodId && (
+                                            <button type="button" onClick={cancelEdit} style={{ padding: '0 15px', border: '1px solid #ccc', background: 'white', borderRadius: '4px', cursor: 'pointer', height: '100%' }}>Hủy</button>
+                                        )}
+                                    </div>
+                                </form>
+
+                                <h3>📋 Quản lý Menu của {currentUser.shop_name}</h3>
+                                <div className="food-grid">
+                                    {foods.length === 0 ? <p>Chưa có món nào trong kho.</p> : foods.map(food => (
+                                        <div key={food.id} className={`food-card ${food.is_sold_out ? 'card-dimmed' : ''}`}>
+                                            <img src={food.img} alt={food.name} />
+                                            <div className="food-info">
+                                                <h3>{food.name}</h3>
+                                                <p className="price">{food.price.toLocaleString('vi-VN')}đ</p>
+                                                <p style={{marginBottom: 10}}>Trạng thái: <strong>{food.is_sold_out ? '🔴 Hết hàng' : '🟢 Đang bán'}</strong></p>
+                                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                                    <button className={food.is_sold_out ? "btn-open" : "btn-sold-out"} onClick={() => toggleFoodStatus(food)} style={{ flex: 1 }}>
+                                                        {food.is_sold_out ? 'Mở bán' : 'Báo hết'}
+                                                    </button>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    <button onClick={() => handleEditClick(food)} style={{ flex: 1, padding: '8px', background: '#1890ff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Sửa</button>
+                                                    <button className="btn-remove" onClick={() => handleDeleteFood(food.id, food.name)} style={{ flex: 1, padding: '8px', background: '#ff4d4f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Xóa</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {/* ========================================= */}
+                        {/* TAB 2: QUẢN LÝ ĐƠN HÀNG (MỚI)               */}
+                        {/* ========================================= */}
+                        {activeSellerTab === 'orders' && (
+                            <div style={{ marginTop: '20px' }}>
+                                <h3>Danh sách Đơn hàng</h3>
+                                {sellerOrders.length === 0 ? <p>Chưa có đơn hàng nào.</p> : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                        {sellerOrders.map(order => {
+                                            const cartItems = JSON.parse(order.cart_details);
+                                            return (
+                                                <div key={order.id} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', background: order.status === 'pending' ? '#fff9e6' : '#fff' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>
+                                                        <strong>Mã đơn: #{order.id}</strong>
+                                                        <span style={{ color: order.status === 'pending' ? 'red' : (order.status === 'accepted' ? 'blue' : 'green'), fontWeight: 'bold' }}>
+                                                            {order.status === 'pending' ? '🔴 Chờ xác nhận' : (order.status === 'accepted' ? '🔵 Đang chuẩn bị' : '🟢 Đã hoàn thành')}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div style={{ marginBottom: '15px' }}>
+                                                        {cartItems.map((item, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '5px' }}>
+                                                                <span>{item.quantity}x {item.name}</span>
+                                                                <span>{(item.price * item.quantity).toLocaleString('vi-VN')}đ</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9f9f9', padding: '10px', borderRadius: '5px' }}>
+                                                        <div>
+                                                            <p style={{ margin: 0, fontSize: '14px' }}>Khách trả: <strong>{order.payment_method === 'CK' ? 'Chuyển khoản QR' : 'Tiền mặt (COD)'}</strong></p>
+                                                            <h4 style={{ margin: '5px 0 0 0', color: '#ee4d2d' }}>Tổng thu: {order.total_price.toLocaleString('vi-VN')}đ</h4>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                                            {order.status === 'pending' && (
+                                                                <button className="btn-primary" onClick={() => handleUpdateOrderStatus(order.id, 'accepted')}>Xác nhận đơn</button>
+                                                            )}
+                                                            {order.status === 'accepted' && (
+                                                                <button className="btn-primary" style={{background: '#28a745'}} onClick={() => handleUpdateOrderStatus(order.id, 'completed')}>Giao xong</button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                     </div>
                 )}
             </div>
+            {/* POPUP HIỂN THỊ MÃ QR KHI CHỌN CHUYỂN KHOẢN */}
+            {showQR && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                    <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', textAlign: 'center', width: '350px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                        <h2 style={{ margin: '0 0 10px 0' }}>Quét mã để thanh toán</h2>
+                        
+                        <p style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '24px', margin: '10px 0' }}>
+                            ⏳ {formatTime(timeLeft)}
+                        </p>
+                        
+                        <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+                            Đơn hàng sẽ tự động hủy nếu quá hạn 3 phút.
+                        </p>
+
+                        <img 
+                            src={`https://img.vietqr.io/image/vietcombank-1111111111-compact.png?amount=${totalPrice}&addInfo=Thanh%20toan%20ShopeeFood`} 
+                            alt="Mã QR" 
+                            style={{ width: '250px', height: '250px', border: '1px solid #ccc', borderRadius: '8px', margin: '15px 0' }} 
+                        />
+                        
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '10px' }}>
+                            <button className="btn-back" style={{ padding: '10px 15px' }} onClick={() => setShowQR(false)}>
+                                Hủy giao dịch
+                            </button>
+                            
+                            <button className="btn-primary" style={{ padding: '10px 15px' }} onClick={() => {
+                                setShowQR(false);
+                                handleCheckout(); // Gọi hàm chốt đơn thật sự sau khi khách xác nhận
+                            }}>
+                                Đã thanh toán
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
