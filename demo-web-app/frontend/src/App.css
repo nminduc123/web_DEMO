@@ -6,7 +6,8 @@
     min-height: 100vh; 
     width: 100vw; 
     overflow-x: hidden; /* Chặn thanh cuộn ngang */
-    padding-bottom: 50px; 
+    display: flex;            
+    flex-direction: column;
 }
 
 /* 2. Navbar cũng tràn Full */
@@ -120,3 +121,17 @@
     font-weight: bold; 
 }
 .btn-open { width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+/* HIỆU ỨNG CHO LINK Ở FOOTER */
+.footer-link {
+    margin: 8px 0;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s ease-in-out; /* Làm hiệu ứng mượt mà */
+}
+
+.footer-link:hover {
+    color: #ee4d2d; /* Đổi sang màu cam Shopee */
+    transform: translateY(-3px); /* Bật nổi lên trên 3 pixel */
+    font-weight: 500;
+}

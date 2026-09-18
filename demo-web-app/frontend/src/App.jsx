@@ -47,11 +47,19 @@ function App() {
         localStorage.setItem('foodAppCart', JSON.stringify(cart));
     }, [cart]);
     const [currentUser, setCurrentUser] = useState(null);
+    const handleLogout = () => {
+        setCurrentUser(null); // Xóa dữ liệu user hiện tại
+        setView('home');      // Đá về lại trang chủ
+    
+    // Lưu ý: Nếu ông có dùng localStorage để giữ đăng nhập khi F5 thì bỏ comment dòng dưới nhé:
+    // localStorage.removeItem('user'); 
+    };
 
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
+    const [activeTab, setActiveTab] = useState('Đồ ăn');
     const [registerRole, setRegisterRole] = useState('user');
     const [shopName, setShopName] = useState('');
     const [shopCategory, setShopCategory] = useState('');
@@ -60,6 +68,8 @@ function App() {
     const [newFoodPrice, setNewFoodPrice] = useState('');
     const [newFoodImgFile, setNewFoodImgFile] = useState(null);
     const [editFoodId, setEditFoodId] = useState(null);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
     // STATE CHO QUẢN LÝ ĐƠN HÀNG CỦA SELLER
     const [sellerOrders, setSellerOrders] = useState([]);
@@ -393,6 +403,125 @@ function App() {
 
     return (
         <div className="app-container">
+            {/* HEADER CHUẨN SHOPEEFOOD */}
+            <header style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'center', height: '70px', position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div style={{ width: '100%', padding: '0 50px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    
+                    {/* KHỐI BÊN TRÁI: Logo + Địa chỉ + Menu */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '60px' }}>
+                        
+                        {/* Logo & Địa chỉ */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setView('home')}>
+                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style={{ width: '32px' }} />
+                                <h1 style={{ color: '#ee4d2d', fontSize: '22px', margin: 0, fontWeight: '900' }}>ShopeeFood</h1>
+                            </div>
+                            
+                            <div style={{ background: '#f5f5f5', padding: '8px 12px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#333' }}>
+                                Hà Nội <span style={{ fontSize: '10px', color: '#999' }}>▼</span>
+                            </div>
+                        </div>
+
+                        {/* Menu Tab */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '15px', fontWeight: '500' }}>
+                            {['Đồ ăn', 'Thực phẩm', 'Rượu bia', 'Hoa', 'Siêu thị', 'Thuốc', 'Thú cưng'].map((tab) => (
+                                <span 
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    style={{ 
+                                        color: activeTab === tab ? '#ee4d2d' : '#333', 
+                                        borderBottom: activeTab === tab ? '3px solid #ee4d2d' : '3px solid transparent', 
+                                        padding: '24px 0', 
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease-in-out'
+                                    }}
+                                >
+                                    {tab}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* KHỐI BÊN PHẢI: Tìm kiếm viên nhộng + Đăng nhập */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        
+                        {/* Thanh tìm kiếm hình viên nhộng */}
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            border: isSearchOpen ? '1px solid #ee4d2d' : '1px solid transparent', 
+                            borderRadius: '50px',
+                            width: isSearchOpen ? '260px' : '40px',
+                            height: '40px',
+                            padding: isSearchOpen ? '0 15px' : '0',
+                            justifyContent: 'center',
+                            transition: 'all 0.3s ease-in-out',
+                            overflow: 'hidden',
+                            boxSizing: 'border-box',
+                            background: isSearchOpen ? '#fff' : 'transparent',
+                            cursor: isSearchOpen ? 'default' : 'pointer'
+                        }}
+                        onClick={() => !isSearchOpen && setIsSearchOpen(true)}
+                        >
+                            <input 
+                                type="text" 
+                                placeholder="Tìm món ăn, quán ăn..." 
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && searchText.trim() !== '') {
+                                        alert("Đang tìm kiếm: " + searchText);
+                                        // Xử lý logic gọi API tìm kiếm ở đây sau này
+                                    }
+                                }}
+                                style={{ 
+                                    flex: 1, 
+                                    border: 'none', 
+                                    outline: 'none',
+                                    fontSize: '14px',
+                                    background: 'transparent',
+                                    opacity: isSearchOpen ? 1 : 0,
+                                    width: isSearchOpen ? '100%' : '0px',
+                                    padding: 0,
+                                    transition: 'opacity 0.2s ease-in-out'
+                                }} 
+                            />
+                            
+                            <svg 
+                                onClick={(e) => {
+                                    if (isSearchOpen) {
+                                        e.stopPropagation(); // Ngăn click lan ra ngoài thẻ div
+                                        if (searchText.trim() === '') {
+                                            // Nếu ô nhập trống -> Thu gọn lại
+                                            setIsSearchOpen(false);
+                                        } else {
+                                            // Nếu có chữ -> Thực hiện tìm kiếm
+                                            alert("Đang tìm kiếm: " + searchText);
+                                            // Xử lý logic gọi API tìm kiếm ở đây sau này
+                                        }
+                                    }
+                                }}
+                                style={{ minWidth: '20px', cursor: 'pointer', color: '#666' }} 
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            >
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </div>
+                        
+                        {currentUser ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <span style={{ fontWeight: '500', color: '#333' }}>Chào, {currentUser.email.split('@')[0]}</span>
+                                <button onClick={handleLogout} style={{ padding: '8px 15px', border: '1px solid #ee4d2d', color: '#ee4d2d', background: '#fff', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}>Đăng xuất</button>
+                            </div>
+                        ) : (
+                            <button onClick={() => setView('login')} style={{ padding: '8px 20px', border: '1px solid #ee4d2d', color: '#ee4d2d', background: '#fff', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>Đăng nhập</button>
+                        )}
+                    </div>
+
+                </div>
+            </header>
+
             {(view === 'shop-list' || view === 'shop-detail' || view === 'cart' || view === 'seller-dashboard') && (
                 <nav className="navbar">
                     <h2 onClick={() => {
@@ -889,6 +1018,72 @@ function App() {
                     </div>
                 </div>
             )}
+            
+            {/* FOOTER SHOPEEFOOD - CĂN CHỈNH CHỐNG LỆCH */}
+            <footer style={{ background: '#f5f5f5', padding: '50px 20px', marginTop: 'auto', borderTop: '1px solid #e5e5e5', color: '#666', fontSize: '13px' }}>
+                <div style={{ maxWidth: '1050px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '20px' }}>
+                    
+                    {/* CỘT 1: CÔNG TY */}
+                    <div style={{ width: '160px' }}>
+                        <h4 style={{ color: '#333', fontSize: '14px', fontWeight: 'bold', marginBottom: '20px' }}>Công ty</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className="footer-link" style={{ color: '#007bff', margin: '4px 0' }}>Giới thiệu</span>
+                            <span className="footer-link" style={{ color: '#007bff', margin: '4px 0' }}>Trung tâm Trợ giúp</span>
+                            <span className="footer-link" style={{ color: '#007bff', margin: '4px 0' }}>Quy chế</span>
+                            <span className="footer-link" style={{ color: '#007bff', margin: '4px 0' }}>Điều khoản sử dụng</span>
+                            <span className="footer-link" style={{ color: '#007bff', margin: '4px 0' }}>Bảo mật thông tin</span>
+                            <span className="footer-link" style={{ color: '#007bff', margin: '4px 0' }}>Giải quyết khiếu nại</span>
+                            <span className="footer-link" style={{ color: '#007bff', margin: '4px 0' }}>Liên hệ</span>
+                        </div>
+                    </div>
+
+                    {/* CỘT 2: ỨNG DỤNG */}
+                    <div style={{ width: '160px' }}>
+                        <h4 style={{ color: '#333', fontSize: '14px', fontWeight: 'bold', marginBottom: '20px' }}>Ứng dụng ShopeeFood</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <img 
+                                src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" 
+                                alt="App Store" 
+                                style={{ width: '120px', cursor: 'pointer', marginBottom: '5px' }} 
+                                className="footer-link" 
+                            />
+                            <img 
+                                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" 
+                                alt="Google Play" 
+                                style={{ width: '140px', cursor: 'pointer', marginLeft: '-9px', marginTop: '-8px' }} 
+                                className="footer-link" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* CỘT 3: LOGO & MẠNG XÃ HỘI */}
+                    <div style={{ width: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        
+                        <span style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '18px', marginBottom: '10px' }}>ShopeeFood Fake</span>
+                        <p style={{ color: '#999', fontSize: '12px', marginBottom: '15px' }}>© 2026 ShopeeFood</p>
+                        <div style={{ display: 'flex', gap: '15px' }}>
+                            <a href="https://facebook.com" target="_blank" rel="noreferrer" className="footer-link">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="FB" style={{ width: '28px', filter: 'grayscale(100%) opacity(60%)' }} />
+                            </a>
+                            <a href="https://instagram.com" target="_blank" rel="noreferrer" className="footer-link">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="IG" style={{ width: '28px', filter: 'grayscale(100%) opacity(60%)' }} />
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* CỘT 4: ĐỊA CHỈ */}
+                    <div style={{ flex: 1.5, minWidth: '350px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', lineHeight: '1.8' }}>
+                        <h4 style={{ color: '#333', fontSize: '14px', fontWeight: 'bold', marginBottom: '20px' }}>Địa chỉ công ty</h4>
+                        <span>Công Ty Cổ Phần Foody (Chi nhánh Hà Nội)</span>
+                        <span>Tầng 20, Tòa nhà Capital Place,</span>
+                        <span>số 29 Liễu Giai, phường Ngọc Khánh, quận Ba Đình, Hà Nội</span>
+                        <span>Điện thoại liên hệ: 024 7109xxxx</span>
+                        <span>Email: <a href="mailto:hotro@shopeefoodfake.com" style={{ color: '#007bff', textDecoration: 'none' }}>hotro@shopeefoodfake.com</a></span>
+
+                    </div>
+
+                </div>
+            </footer>
         </div>
     );
 }
