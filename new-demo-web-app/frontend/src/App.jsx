@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register'; // <-- 1. Import trang Đăng ký (đường dẫn tùy theo thư mục của ông)
 import ForgotPassword from './pages/ForgotPassword';
+import Seller from './pages/Seller';
 
 export default function App() {
     // Khởi tạo state đọc trực tiếp từ localStorage để không bị mất khi F5
@@ -40,6 +41,9 @@ export default function App() {
                     {/* Chừa chỗ cho các trang tiếp theo */}
                     <Route path="/checkout" element={<h2 style={{textAlign: 'center'}}>Trang Giỏ hàng (Sắp làm)</h2>} />
                     <Route path="/shop/:id" element={<h2 style={{textAlign: 'center'}}>Trang Menu Của Quán (Sắp làm)</h2>} />
+
+                    {/* Trang quản lý của quán */}
+                    <Route path="/seller" element={<Seller currentUser={currentUser} setCurrentUser={setCurrentUser} />} />
                 </Routes>
             </main>
             

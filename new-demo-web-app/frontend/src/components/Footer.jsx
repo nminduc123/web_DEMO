@@ -53,7 +53,7 @@ export default function Footer() {
                     <span>Tầng 5, Tòa nhà MHandSo Mevl,</span>
                     <span>số 29 Liễu Giai, phường Ngọc Khánh, quận Ba Đình, Hà Nội</span>
                     <span>Điện thoại liên hệ: 024 03163139</span>
-                    <span>Email: <a href="mailto:hotro@suport.m-bitefake.com" style={{ color: '#007bff', textDecoration: 'none' }}>hotro@m-bitefake.com</a></span>
+                    <span>Email: <a href="mailto:hotro@support.m-bite.com" style={{ color: '#007bff', textDecoration: 'none' }}>hotro@support.m-bite.com</a></span>
                 </div>
                 
             </div>

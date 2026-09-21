@@ -12,6 +12,7 @@ app.use('/uploads', express.static('uploads'));
 
 const dbConfig = { host: 'localhost', port: 3306, user: 'root', password: '', database: 'food_app' };
 const otpStorage = {};
+const tempUsers = {}; // <-- Thêm biến này để lưu tạm thông tin đăng ký chờ xác thực
 
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
@@ -65,36 +66,79 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/register', async (req, res) => {
-    const { email, phone, password, verifyMethod, role, shopName, shopCategory } = req.body;
+    const { email, phone, password, verifyMethod, role, shopName, shopCategory, shopDescription, shopAddress } = req.body;
     const userRole = role === 'seller' ? 'seller' : 'user'; 
 
     try {
         const connection = await mysql.createConnection(dbConfig);
-        await connection.execute(
-            'INSERT INTO users (email, phone, password, role, shop_name, shop_category) VALUES (?, ?, ?, ?, ?, ?)', 
-            [email, phone, password, userRole, shopName || null, shopCategory || null]
-        );
+        // Kiểm tra xem email hoặc SĐT đã tồn tại thật trong Database chưa
+        const [existingUsers] = await connection.execute('SELECT * FROM users WHERE email = ? OR phone = ?', [email, phone]);
         await connection.end();
+
+        if (existingUsers.length > 0) {
+            return res.status(400).json({ success: false, message: "Email hoặc SĐT đã tồn tại!" });
+        }
         
+        // Tạo OTP và lưu toàn bộ dữ liệu vào biến tạm (thời hạn 60 giây)
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStorage[email] = otp;
-        console.log(`\n🔑 [2FA] Đang gửi OTP cho [${email}]: ${otp}\n`);
+        tempUsers[email] = {
+            data: { email, phone, password, userRole, shopName, shopCategory, shopDescription, shopAddress },
+            otp: otp,
+            expiresAt: Date.now() + 60000 // Hết hạn sau 60 giây (60000 ms)
+        };
+
+        console.log(`\n🔑 [2FA ĐĂNG KÝ] Đang gửi OTP cho [${email}]: ${otp}\n`);
         
         res.json({ success: true, message: "Đã gửi mã OTP." });
     } catch (error) { 
-        res.status(400).json({ success: false, message: "Email hoặc SĐT đã tồn tại!" }); 
+        console.error("Lỗi đăng ký:", error);
+        res.status(500).json({ success: false, message: "Lỗi kết nối cơ sở dữ liệu!" }); 
     }
 });
 
 app.post('/api/verify-otp', async (req, res) => {
     const { email, otp } = req.body;
-    if (otpStorage[email] === otp) {
-        const connection = await mysql.createConnection(dbConfig);
-        await connection.execute('UPDATE users SET is_verified = TRUE WHERE email = ?', [email]);
-        await connection.end();
-        delete otpStorage[email];
-        res.json({ success: true, message: "Xác thực thành công!" });
-    } else res.status(400).json({ success: false, message: "Mã OTP không hợp lệ!" });
+    const pendingUser = tempUsers[email];
+
+    // 1. Kiểm tra yêu cầu có tồn tại không
+    if (!pendingUser) {
+        return res.status(400).json({ success: false, message: "Không tìm thấy yêu cầu đăng ký hoặc đã bị hủy!" });
+    }
+
+    // 2. Kiểm tra thời hạn 60s
+    if (Date.now() > pendingUser.expiresAt) {
+        delete tempUsers[email]; // Xóa dữ liệu tạm
+        return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn! Vui lòng đăng ký lại." });
+    }
+
+    // 3. Kiểm tra tính hợp lệ của OTP
+    if (pendingUser.otp === otp) {
+        try {
+            const u = pendingUser.data;
+            const connection = await mysql.createConnection(dbConfig);
+            
+            // LƯU CHÍNH THỨC VÀO DATABASE VÀ ĐÁNH DẤU LÀ ĐÃ XÁC THỰC (is_verified = TRUE)
+            await connection.execute(
+                'INSERT INTO users (email, phone, password, role, shop_name, shop_category, shop_description, shop_address, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)', 
+                [
+                    u.email, u.phone, u.password, u.userRole, 
+                    u.shopName || null, u.shopCategory || null, 
+                    u.shopDescription || null, u.shopAddress || null
+                ]
+            );
+            await connection.end();
+            
+            // Xóa rác trong RAM sau khi đã insert DB thành công
+            delete tempUsers[email];
+            
+            res.json({ success: true, message: "Xác thực và tạo tài khoản thành công!" });
+        } catch (error) {
+            console.error("Lỗi insert DB:", error);
+            res.status(500).json({ success: false, message: "Lỗi hệ thống khi lưu tài khoản!" });
+        }
+    } else {
+        res.status(400).json({ success: false, message: "Mã OTP không hợp lệ!" });
+    }
 });
 
 app.post('/api/checkout', async (req, res) => {
