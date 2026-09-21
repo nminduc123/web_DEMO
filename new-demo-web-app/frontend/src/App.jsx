@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -24,30 +24,45 @@ export default function App() {
         }
     }, [currentUser]);
 
+    const isSeller = currentUser?.role === 'seller';
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
             <Header currentUser={currentUser} setCurrentUser={setCurrentUser} />
             
-            <main style={{ flex: 1, backgroundColor: '#f5f5f5', padding: '30px 0' }}>
+            <main style={{ flex: 1, backgroundColor: isSeller ? '#1a1a1a' : '#f5f5f5' }}>
                 <Routes>
-                    {/* Truyền currentUser xuống cho Home để check khi click vào quán */}
-                    <Route path="/" element={<Home currentUser={currentUser} />} />
-                    
-                    {/* Các trang xác thực */}
-                    <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
-                    <Route path="/register" element={<Register />} /> {/* <-- 2. Thêm route Đăng ký vào đây */}
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    
-                    {/* Chừa chỗ cho các trang tiếp theo */}
-                    <Route path="/checkout" element={<h2 style={{textAlign: 'center'}}>Trang Giỏ hàng (Sắp làm)</h2>} />
-                    <Route path="/shop/:id" element={<h2 style={{textAlign: 'center'}}>Trang Menu Của Quán (Sắp làm)</h2>} />
+                    {isSeller ? (
+                        /* Tài khoản seller: Chỉ có duy nhất 1 giao diện quản lý nhà hàng */
+                        <>
+                            <Route path="/seller" element={<Seller currentUser={currentUser} setCurrentUser={setCurrentUser} />} />
+                            {/* Tất cả các route khác (kể cả '/') đều tự động chuyển hướng về /seller */}
+                            <Route path="*" element={<Navigate to="/seller" replace />} />
+                        </>
+                    ) : (
+                        /* Tài khoản khách / người dùng / chưa đăng nhập */
+                        <>
+                            <Route path="/" element={<Home currentUser={currentUser} />} />
+                            
+                            {/* Các trang xác thực */}
+                            <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
+                            <Route path="/register" element={<Register />} />
+                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                            
+                            {/* Chừa chỗ cho các trang tiếp theo */}
+                            <Route path="/checkout" element={<h2 style={{textAlign: 'center', padding: '50px 0'}}>Trang Giỏ hàng (Sắp làm)</h2>} />
+                            <Route path="/shop/:id" element={<h2 style={{textAlign: 'center', padding: '50px 0'}}>Trang Menu Của Quán (Sắp làm)</h2>} />
 
-                    {/* Trang quản lý của quán */}
-                    <Route path="/seller" element={<Seller currentUser={currentUser} setCurrentUser={setCurrentUser} />} />
+                            {/* Trang quản lý của quán */}
+                            <Route path="/seller" element={<Seller currentUser={currentUser} setCurrentUser={setCurrentUser} />} />
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </>
+                    )}
                 </Routes>
             </main>
             
-            <Footer />
+            {/* Ẩn footer khách khi tài khoản là seller */}
+            {!isSeller && <Footer />}
         </div>
     );
 }
