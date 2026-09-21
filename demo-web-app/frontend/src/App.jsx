@@ -414,7 +414,7 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setView('home')}>
                                 <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style={{ width: '32px' }} />
-                                <h1 style={{ color: '#ee4d2d', fontSize: '22px', margin: 0, fontWeight: '900' }}>ShopeeFood</h1>
+                                <h1 style={{ color: '#ee4d2d', fontSize: '22px', margin: 0, fontWeight: '900' }}>M-Bite</h1>
                             </div>
                             
                             <div style={{ background: '#f5f5f5', padding: '8px 12px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#333' }}>
@@ -998,7 +998,7 @@ function App() {
                         </p>
 
                         <img 
-                            src={`https://img.vietqr.io/image/vietcombank-1111111111-compact.png?amount=${totalPrice}&addInfo=Thanh%20toan%20ShopeeFood`} 
+                            src={`https://img.vietqr.io/image/vietcombank-1111111111-compact.png?amount=${totalPrice}&addInfo=Thanh%20toan%20M-Bite`} 
                             alt="Mã QR" 
                             style={{ width: '250px', height: '250px', border: '1px solid #ccc', borderRadius: '8px', margin: '15px 0' }} 
                         />
@@ -1039,7 +1039,7 @@ function App() {
 
                     {/* CỘT 2: ỨNG DỤNG */}
                     <div style={{ width: '160px' }}>
-                        <h4 style={{ color: '#333', fontSize: '14px', fontWeight: 'bold', marginBottom: '20px' }}>Ứng dụng ShopeeFood</h4>
+                        <h4 style={{ color: '#333', fontSize: '14px', fontWeight: 'bold', marginBottom: '20px' }}>Ứng dụng M-Bite</h4>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <img 
                                 src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" 
@@ -1059,8 +1059,8 @@ function App() {
                     {/* CỘT 3: LOGO & MẠNG XÃ HỘI */}
                     <div style={{ width: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         
-                        <span style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '18px', marginBottom: '10px' }}>ShopeeFood Fake</span>
-                        <p style={{ color: '#999', fontSize: '12px', marginBottom: '15px' }}>© 2026 ShopeeFood</p>
+                        <span style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '18px', marginBottom: '10px' }}>M-Bite Fake</span>
+                        <p style={{ color: '#999', fontSize: '12px', marginBottom: '15px' }}>© 2026 M-Bite</p>
                         <div style={{ display: 'flex', gap: '15px' }}>
                             <a href="https://facebook.com" target="_blank" rel="noreferrer" className="footer-link">
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="FB" style={{ width: '28px', filter: 'grayscale(100%) opacity(60%)' }} />
