@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SHOP_CATEGORIES } from '../constants/categories';
 
 export default function Register() {
     const [step, setStep] = useState(1); 
@@ -12,7 +13,7 @@ export default function Register() {
     
     // Data riêng của quán
     const [shopName, setShopName] = useState('');
-    const [shopCategory, setShopCategory] = useState('');
+    const [shopCategory, setShopCategory] = useState(SHOP_CATEGORIES[0]);
     const [shopDescription, setShopDescription] = useState(''); 
     const [shopAddress, setShopAddress] = useState(''); 
     
@@ -169,7 +170,16 @@ export default function Register() {
                     <>
                         <div style={{ color: '#ee4d2d', fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>Thông Tin Quán Của Bạn</div>
                         <input type="text" placeholder="Tên quán" required value={shopName} onChange={(e) => setShopName(e.target.value)} style={inputStyle} />
-                        <input type="text" placeholder="Danh mục (Ví dụ: Đồ ăn nhanh...)" required value={shopCategory} onChange={(e) => setShopCategory(e.target.value)} style={inputStyle} />
+                        <select 
+                            required 
+                            value={shopCategory} 
+                            onChange={(e) => setShopCategory(e.target.value)} 
+                            style={inputStyle}
+                        >
+                            {SHOP_CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
                         <textarea placeholder="Mô tả ngắn gọn" rows="2" value={shopDescription} onChange={(e) => setShopDescription(e.target.value)} style={{...inputStyle, resize: 'none'}} />
                         <input type="text" placeholder="Địa chỉ chi tiết" required value={shopAddress} onChange={(e) => setShopAddress(e.target.value)} style={inputStyle} />
                         <button type="button" onClick={() => setStep(1)} style={{ background: '#444', color: '#fff', padding: '10px', borderRadius: '4px', cursor: 'pointer', border: 'none' }}>Quay lại</button>
@@ -187,6 +197,7 @@ export default function Register() {
                     <div style={{ background: '#2a2a2a', padding: '25px', borderRadius: '8px', width: '85%', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
                         <h3 style={{ margin: '0 0 10px 0', color: '#ee4d2d' }}>Xác Thực OTP</h3>
                         <p style={{ fontSize: '13px', color: '#ccc', marginBottom: '20px' }}>Mã gồm 6 chữ số đã được gửi tới email của bạn.</p>
+
                         
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '15px' }}>
                             {otp.map((data, index) => (

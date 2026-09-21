@@ -1,21 +1,88 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoMBite from '../assets/logo-mbite.png';
+import { useToast } from '../context/ToastContext';
+import { SHOP_CATEGORIES } from '../constants/categories';
 
-export default function Header({ currentUser, setCurrentUser }) {
-    const [activeTab, setActiveTab] = useState('Đồ ăn');
+export default function Header({ 
+    currentUser, 
+    setCurrentUser, 
+    cart = [], 
+    selectedCategory = 'Tất cả', 
+    setSelectedCategory,
+    searchKeyword = '',
+    setSearchKeyword
+}) {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [searchText, setSearchText] = useState('');
+    const [searchText, setSearchText] = useState(searchKeyword || '');
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     
+    const searchRef = useRef(null);
+    const searchInputRef = useRef(null);
+    const profileDropdownRef = useRef(null);
+
     const navigate = useNavigate();
+    const { showToast } = useToast();
+
+    const categoryTabs = ['Tất cả', ...SHOP_CATEGORIES];
+
+    // Đồng bộ searchText khi searchKeyword thay đổi từ bên ngoài (ví dụ xóa tìm kiếm)
+    useEffect(() => {
+        setSearchText(searchKeyword || '');
+    }, [searchKeyword]);
+
+    // Tự động thu lại thanh tìm kiếm và đóng dropdown profile khi bấm ra ngoài
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setIsSearchOpen(false);
+            }
+            if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+                setIsProfileOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const handleLogout = () => {
+        sessionStorage.removeItem('user');
+        localStorage.removeItem('user');
         if (setCurrentUser) setCurrentUser(null);
+        showToast("Đã đăng xuất thành công!", "info");
         navigate('/'); 
     };
 
+    const handleSearchSubmit = () => {
+        const term = searchText.trim();
+        if (term !== '') {
+            if (setSearchKeyword) setSearchKeyword(term);
+            navigate('/');
+        } else {
+            if (setSearchKeyword) setSearchKeyword('');
+        }
+    };
+
+    const toggleSearch = () => {
+        if (!isSearchOpen) {
+            setIsSearchOpen(true);
+            setTimeout(() => {
+                searchInputRef.current?.focus();
+            }, 100);
+        } else {
+            if (searchText.trim() !== '') {
+                handleSearchSubmit();
+            } else {
+                setIsSearchOpen(false);
+            }
+        }
+    };
+
     const isSeller = currentUser?.role === 'seller';
+    const isAdmin = currentUser?.role === 'admin';
 
     return (
         <header style={{ background: '#1c1c1c', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'center', height: '90px', position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 1px 5px rgba(0,0,0,0.5)' }}>
@@ -31,6 +98,8 @@ export default function Header({ currentUser, setCurrentUser }) {
                         }} 
                         onClick={() => {
                             if (!isSeller) {
+                                if (setSearchKeyword) setSearchKeyword('');
+                                if (setSelectedCategory) setSelectedCategory('Tất cả');
                                 navigate('/');
                             }
                         }}
@@ -65,6 +134,36 @@ export default function Header({ currentUser, setCurrentUser }) {
                                 Quán: <strong style={{ color: '#fff' }}>{currentUser.shop_name || 'Của bạn'}</strong>
                             </span>
                         </div>
+                    ) : isAdmin ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <span 
+                                onClick={() => navigate('/admin')}
+                                style={{ 
+                                    background: 'linear-gradient(135deg, #722ed1 0%, #eb2f96 100%)', 
+                                    color: '#fff', 
+                                    padding: '7px 16px', 
+                                    borderRadius: '6px', 
+                                    fontSize: '13px', 
+                                    fontWeight: 'bold',
+                                    letterSpacing: '0.5px',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 8px rgba(114, 46, 209, 0.4)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                🛡️ BẢNG ĐIỀU KHIỂN ADMIN
+                            </span>
+                            <span 
+                                onClick={() => navigate('/')}
+                                style={{ color: '#aaa', fontSize: '14px', cursor: 'pointer', transition: 'color 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                                onMouseLeave={e => e.currentTarget.style.color = '#aaa'}
+                            >
+                                🏪 Xem sàn M-Bite ➔
+                            </span>
+                        </div>
                     ) : (
                         <>
                             <div style={{ background: '#2a2a2a', padding: '8px 12px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#fff' }}>
@@ -72,19 +171,30 @@ export default function Header({ currentUser, setCurrentUser }) {
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '15px', fontWeight: '500' }}>
-                                {['Đồ ăn', 'Thực phẩm', 'Rượu bia', 'Hoa', 'Siêu thị', 'Thuốc', 'Thú cưng'].map((tab) => (
-                                    <span 
-                                        key={tab}
-                                        onClick={() => setActiveTab(tab)}
-                                        style={{ 
-                                            color: activeTab === tab ? '#ee4d2d' : '#ccc', 
-                                            borderBottom: activeTab === tab ? '3px solid #ee4d2d' : '3px solid transparent', 
-                                            padding: '33px 0', cursor: 'pointer', transition: 'all 0.2s ease-in-out'
-                                        }}
-                                    >
-                                        {tab}
-                                    </span>
-                                ))}
+                                {categoryTabs.map((tab) => {
+                                    const isSelected = selectedCategory === tab;
+                                    return (
+                                        <span 
+                                            key={tab}
+                                            onClick={() => {
+                                                if (setSearchKeyword) setSearchKeyword('');
+                                                if (setSelectedCategory) setSelectedCategory(tab);
+                                                navigate('/');
+                                            }}
+                                            style={{ 
+                                                color: isSelected ? '#ee4d2d' : '#ccc', 
+                                                borderBottom: isSelected ? '3px solid #ee4d2d' : '3px solid transparent', 
+                                                padding: '33px 0', 
+                                                cursor: 'pointer', 
+                                                transition: 'all 0.2s ease-in-out',
+                                                fontWeight: isSelected ? 'bold' : '500',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            {tab}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         </>
                     )}
@@ -126,19 +236,35 @@ export default function Header({ currentUser, setCurrentUser }) {
                     </div>
                 ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
-                        <div style={{ 
-                            display: 'flex', alignItems: 'center', border: isSearchOpen ? '1px solid #ee4d2d' : '1px solid transparent', 
-                            borderRadius: '50px', width: isSearchOpen ? '260px' : '40px', height: '40px', padding: isSearchOpen ? '0 15px' : '0',
-                            justifyContent: 'center', transition: 'all 0.3s ease-in-out', overflow: 'hidden', boxSizing: 'border-box',
-                            background: isSearchOpen ? '#fff' : 'transparent', cursor: isSearchOpen ? 'default' : 'pointer'
-                        }}
-                        onClick={() => !isSearchOpen && setIsSearchOpen(true)}
+                        {/* THANH TÌM KIẾM CÓ TỰ ĐỘNG THU LẠI KHI CLICK RA NGOÀI */}
+                        <div 
+                            ref={searchRef}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', border: isSearchOpen ? '1px solid #ee4d2d' : '1px solid transparent', 
+                                borderRadius: '50px', width: isSearchOpen ? '260px' : '40px', height: '40px', padding: isSearchOpen ? '0 15px' : '0',
+                                justifyContent: 'center', transition: 'all 0.3s ease-in-out', overflow: 'hidden', boxSizing: 'border-box',
+                                background: isSearchOpen ? '#fff' : 'transparent', cursor: isSearchOpen ? 'default' : 'pointer'
+                            }}
+                            onClick={() => {
+                                if (!isSearchOpen) {
+                                    setIsSearchOpen(true);
+                                    setTimeout(() => searchInputRef.current?.focus(), 100);
+                                }
+                            }}
+                            title={isSearchOpen ? "" : "Bấm để tìm kiếm món ăn hoặc quán"}
                         >
                             <input 
-                                type="text" placeholder="Tìm món ăn..." 
-                                value={searchText} onChange={(e) => setSearchText(e.target.value)}
+                                ref={searchInputRef}
+                                type="text" 
+                                placeholder="Tìm món ăn, tên quán..." 
+                                value={searchText} 
+                                onChange={(e) => setSearchText(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && searchText.trim() !== '') alert("Đang tìm: " + searchText);
+                                    if (e.key === 'Enter') {
+                                        handleSearchSubmit();
+                                    } else if (e.key === 'Escape') {
+                                        setIsSearchOpen(false);
+                                    }
                                 }}
                                 style={{ 
                                     flex: 1, border: 'none', outline: 'none', fontSize: '14px', background: 'transparent',
@@ -147,51 +273,137 @@ export default function Header({ currentUser, setCurrentUser }) {
                             />
                             <svg 
                                 onClick={(e) => {
-                                    if (isSearchOpen) {
-                                        e.stopPropagation();
-                                        if (searchText.trim() === '') setIsSearchOpen(false);
-                                        else alert("Đang tìm: " + searchText);
-                                    }
+                                    e.stopPropagation();
+                                    toggleSearch();
                                 }}
-                                style={{ minWidth: '20px', cursor: 'pointer', color: isSearchOpen ? '#666' : '#ccc' }} 
+                                style={{ minWidth: '20px', cursor: 'pointer', color: isSearchOpen ? '#666' : '#ccc', transition: 'color 0.2s' }} 
                                 width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                title="Tìm kiếm"
                             >
                                 <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
                         </div>
                         
                         {currentUser ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                {isAdmin && (
+                                    <div 
+                                        style={{ 
+                                            display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', 
+                                            border: '1px solid #722ed1', padding: '6px 14px', borderRadius: '50px', 
+                                            background: 'rgba(114, 46, 209, 0.2)', color: '#d3adf7', fontSize: '13px', fontWeight: 'bold' 
+                                        }} 
+                                        onClick={() => navigate('/admin')}
+                                        title="Mở Bảng Điều Khiển Admin"
+                                    >
+                                        <span>🛡️</span> Quản Trị
+                                    </div>
+                                )}
+
+                                {/* NÚT GIỎ HÀNG THU GỌN: CHỈ ICON XE CART + BADGE SỐ LƯỢNG */}
                                 <div 
-                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: '1px solid #ee4d2d', padding: '6px 15px', borderRadius: '50px', background: '#2a2a2a' }} 
+                                    style={{ 
+                                        position: 'relative',
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center',
+                                        cursor: 'pointer', 
+                                        border: '1px solid #ee4d2d', 
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '50%', 
+                                        background: '#2a2a2a',
+                                        transition: 'all 0.2s ease',
+                                        flexShrink: 0
+                                    }} 
                                     onClick={() => navigate('/checkout')}
+                                    title={`Giỏ hàng (${cart.reduce((sum, item) => sum + (item.quantity || 1), 0)} món)`}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#383838'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.transform = 'scale(1)'; }}
                                 >
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ee4d2d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
                                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                                     </svg>
-                                    <span style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '14px' }}>Giỏ hàng (0)</span>
+                                    {cart.length > 0 && (
+                                        <span style={{ 
+                                            position: 'absolute', 
+                                            top: '-5px', 
+                                            right: '-5px', 
+                                            background: '#ee4d2d', 
+                                            color: '#fff', 
+                                            borderRadius: '50%', 
+                                            minWidth: '18px', 
+                                            height: '18px', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center', 
+                                            fontSize: '11px', 
+                                            fontWeight: 'bold', 
+                                            padding: '0 4px',
+                                            boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
+                                            border: '2px solid #1c1c1c'
+                                        }}>
+                                            {cart.reduce((sum, item) => sum + (item.quantity || 1), 0)}
+                                        </span>
+                                    )}
                                 </div>
 
-                                <div style={{ position: 'relative' }}>
+                                {/* DROPDOWN PROFILE CÓ TỰ ĐỘNG THU LẠI KHI CLICK RA NGOÀI */}
+                                <div style={{ position: 'relative' }} ref={profileDropdownRef}>
                                     <div 
                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: '#2a2a2a', padding: '4px 12px 4px 4px', borderRadius: '50px' }}
                                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                                     >
-                                        <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff' }} />
-                                        <span style={{ fontWeight: '600', color: '#fff', fontSize: '14px' }}>{currentUser?.email?.split('@')[0] || 'User'}</span>
+                                        <img 
+                                            src={currentUser?.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                                            alt="Avatar" 
+                                            style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', objectFit: 'cover' }} 
+                                        />
+                                        <span style={{ fontWeight: '600', color: '#fff', fontSize: '14px', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {currentUser?.full_name || 'Khách hàng'}
+                                        </span>
                                         <span style={{ fontSize: '10px', color: '#999' }}>▼</span>
                                     </div>
 
                                     {isProfileOpen && (
-                                        <div style={{ position: 'absolute', top: '130%', right: 0, background: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', width: '200px', zIndex: 1001, display: 'flex', flexDirection: 'column', fontSize: '14px', overflow: 'hidden' }}>
-                                            <div style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} onClick={() => navigate('/profile')}>
+                                        <div style={{ position: 'absolute', top: '130%', right: 0, background: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', width: '220px', zIndex: 1001, display: 'flex', flexDirection: 'column', fontSize: '14px', overflow: 'hidden' }}>
+                                            {isAdmin && (
+                                                <div 
+                                                    style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff', background: 'rgba(114, 46, 209, 0.2)' }} 
+                                                    onClick={() => { setIsProfileOpen(false); navigate('/admin'); }}
+                                                >
+                                                    <span style={{ fontSize: '18px' }}>🛡️</span><span style={{ fontWeight: 'bold', color: '#d3adf7' }}>Bảng Điều Khiển Admin</span>
+                                                </div>
+                                            )}
+                                            <div 
+                                                style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
+                                                onClick={() => { setIsProfileOpen(false); navigate('/profile?tab=info'); }}
+                                            >
                                                 <span style={{ fontSize: '18px' }}>👤</span><span style={{ fontWeight: '500' }}>Thông tin tài khoản</span>
                                             </div>
-                                            <div style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} onClick={() => navigate('/change-password')}>
+                                            <div 
+                                                style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
+                                                onClick={() => { setIsProfileOpen(false); navigate('/my-orders'); }}
+                                            >
+                                                <span style={{ fontSize: '18px' }}>📦</span><span style={{ fontWeight: '500' }}>Đơn hàng của tôi</span>
+                                            </div>
+                                            <div 
+                                                style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
+                                                onClick={() => { setIsProfileOpen(false); navigate('/profile?tab=favorites'); }}
+                                            >
+                                                <span style={{ fontSize: '18px' }}>❤️</span><span style={{ fontWeight: '500' }}>Quán yêu thích</span>
+                                            </div>
+                                            <div 
+                                                style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
+                                                onClick={() => { setIsProfileOpen(false); navigate('/profile?tab=password'); }}
+                                            >
                                                 <span style={{ fontSize: '18px' }}>🔑</span><span style={{ fontWeight: '500' }}>Đổi mật khẩu</span>
                                             </div>
-                                            <div onClick={() => { setIsProfileOpen(false); handleLogout(); }} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#2a2a2a' }}>
+                                            <div 
+                                                onClick={() => { setIsProfileOpen(false); handleLogout(); }} 
+                                                style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#2a2a2a' }}
+                                            >
                                                 <span style={{ fontSize: '18px' }}>🚪</span><span style={{ color: '#ee4d2d', fontWeight: 'bold' }}>Đăng xuất</span>
                                             </div>
                                         </div>

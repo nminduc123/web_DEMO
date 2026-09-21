@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 
 export default function Login({ setCurrentUser }) {
     const [email, setEmail] = useState('');
@@ -7,6 +8,7 @@ export default function Login({ setCurrentUser }) {
     const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
     // Tự động điền email nếu trước đó đã tích chọn "Nhớ tài khoản"
     useEffect(() => {
@@ -33,13 +35,17 @@ export default function Login({ setCurrentUser }) {
                 // 1. Xử lý ghi nhớ tài khoản
                 if (rememberMe) {
                     localStorage.setItem('remembered_email', email);
+                    localStorage.setItem('user', JSON.stringify(data.user));
                 } else {
                     localStorage.removeItem('remembered_email');
+                    localStorage.removeItem('user');
                 }
 
-                // 2. Lưu state user và localStorage
+                // 2. Lưu phiên vào sessionStorage riêng biệt của tab này
+                sessionStorage.setItem('user', JSON.stringify(data.user));
                 setCurrentUser(data.user);
-                localStorage.setItem('user', JSON.stringify(data.user));
+
+                showToast(`Chào mừng bạn quay trở lại!`, 'success');
 
                 // 3. Điều hướng thông minh:
                 const redirectShopId = localStorage.getItem('redirect_shop_id');

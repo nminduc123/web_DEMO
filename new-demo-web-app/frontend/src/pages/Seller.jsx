@@ -1,23 +1,68 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
+import { SHOP_CATEGORIES } from '../constants/categories';
 
 export default function Seller({ currentUser, setCurrentUser }) {
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
-    const [activeSellerTab, setActiveSellerTab] = useState('menu'); // 'menu' | 'orders'
+    // 4 Tab chính của kênh Seller
+    const [activeSellerTab, setActiveSellerTab] = useState('revenue'); // 'revenue' | 'menu' | 'orders' | 'settings'
+
+    // Dữ liệu từ server
     const [foods, setFoods] = useState([]);
     const [sellerOrders, setSellerOrders] = useState([]);
 
-    // State thêm / sửa món
+    // State cho Tab 1: Doanh thu
+    const [revenueTimeRange, setRevenueTimeRange] = useState('all'); // 'today' | 'week' | 'month' | 'all'
+
+    // State cho Tab 2: Thực đơn
     const [newFoodName, setNewFoodName] = useState('');
     const [newFoodPrice, setNewFoodPrice] = useState('');
     const [newFoodImgFile, setNewFoodImgFile] = useState(null);
     const [editFoodId, setEditFoodId] = useState(null);
+    const [menuSearch, setMenuSearch] = useState('');
+    const [menuFilter, setMenuFilter] = useState('all'); // 'all' | 'selling' | 'sold_out'
 
-    // State đổi avatar quán
+    // State cho Tab 3: Đơn hàng
+    const [orderFilter, setOrderFilter] = useState('all'); // 'all' | 'pending' | 'accepted' | 'completed' | 'cancelled'
+
+    // State cho Modal từ chối nhận đơn hàng
+    const [rejectModal, setRejectModal] = useState({
+        isOpen: false,
+        orderId: null,
+        reason: 'Quán đang tạm thời quá tải đơn'
+    });
+
+    // State cho Modal xóa món ăn (thay thế hoàn toàn window.confirm)
+    const [deleteFoodModal, setDeleteFoodModal] = useState({
+        isOpen: false,
+        foodId: null,
+        foodName: ''
+    });
+
+    // State cho Tab 4: Cài đặt quán
     const [avatarFile, setAvatarFile] = useState(null);
+    const [shopNameInput, setShopNameInput] = useState(currentUser?.shop_name || '');
+    const [shopCategoryInput, setShopCategoryInput] = useState(currentUser?.shop_category || 'Đồ ăn');
+    const [shopPhoneInput, setShopPhoneInput] = useState(currentUser?.phone || '');
+    const [shopAddressInput, setShopAddressInput] = useState(currentUser?.shop_address || '');
+    const [shopDescriptionInput, setShopDescriptionInput] = useState(currentUser?.shop_description || '');
+    const [isSavingShopInfo, setIsSavingShopInfo] = useState(false);
 
-    // Hàm lấy danh sách món ăn của quán
+    // Đồng bộ form cài đặt khi currentUser thay đổi
+    useEffect(() => {
+        if (currentUser) {
+            setShopNameInput(currentUser.shop_name || '');
+            setShopCategoryInput(currentUser.shop_category || 'Đồ ăn');
+            setShopPhoneInput(currentUser.phone || '');
+            setShopAddressInput(currentUser.shop_address || '');
+            setShopDescriptionInput(currentUser.shop_description || '');
+        }
+    }, [currentUser]);
+
+    // Lấy danh sách món ăn của quán
     const fetchMenu = async (sellerId) => {
         if (!sellerId) return;
         try {
@@ -31,7 +76,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
         }
     };
 
-    // Hàm lấy danh sách đơn hàng của quán
+    // Lấy danh sách đơn hàng của quán
     const fetchSellerOrders = async () => {
         if (!currentUser?.id) return;
         try {
@@ -56,9 +101,62 @@ export default function Seller({ currentUser, setCurrentUser }) {
     }, [currentUser?.id]);
 
     // Kiểm tra có đơn hàng mới (chờ xác nhận)
-    const hasNewOrders = sellerOrders.some(order => order.status === 'pending');
+    const pendingOrdersCount = useMemo(() => {
+        return sellerOrders.filter(o => o.status === 'pending').length;
+    }, [sellerOrders]);
 
-    // Bật/tắt trạng thái quán (Đẩy sàn / Mở cửa)
+    // --- TÍNH TOÁN DOANH THU & THỐNG KÊ (TAB 1) ---
+    const { filteredOrders, totalRevenue, completedOrdersCount, bestSellers } = useMemo(() => {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const sevenDaysAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+        const thirtyDaysAgo = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+
+        const filtered = sellerOrders.filter(order => {
+            if (revenueTimeRange === 'all') return true;
+            const orderTime = new Date(order.created_at).getTime();
+            if (revenueTimeRange === 'today') return orderTime >= startOfToday;
+            if (revenueTimeRange === 'week') return orderTime >= sevenDaysAgo;
+            if (revenueTimeRange === 'month') return orderTime >= thirtyDaysAgo;
+            return true;
+        });
+
+        const completed = filtered.filter(o => o.status === 'completed');
+        const revenue = completed.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+
+        // Bóc tách món bán chạy từ các đơn hoàn thành
+        const itemStats = {};
+        completed.forEach(order => {
+            try {
+                const items = JSON.parse(order.cart_details || '[]');
+                items.forEach(item => {
+                    const key = item.name;
+                    if (!itemStats[key]) {
+                        itemStats[key] = {
+                            name: item.name,
+                            quantity: 0,
+                            revenue: 0,
+                            img: item.img
+                        };
+                    }
+                    const q = Number(item.quantity || 1);
+                    itemStats[key].quantity += q;
+                    itemStats[key].revenue += Number(item.price || 0) * q;
+                });
+            } catch (e) {}
+        });
+
+        const sortedBestSellers = Object.values(itemStats).sort((a, b) => b.quantity - a.quantity);
+
+        return {
+            filteredOrders: filtered,
+            totalRevenue: revenue,
+            completedOrdersCount: completed.length,
+            bestSellers: sortedBestSellers
+        };
+    }, [sellerOrders, revenueTimeRange]);
+
+    // --- CÁC HÀM THAO TÁC CÀI ĐẶT QUÁN ---
     const toggleShopSettings = async (field, currentValue) => {
         const updatedValue = !currentValue;
         const updatedUser = { ...currentUser, [field]: updatedValue };
@@ -76,16 +174,22 @@ export default function Seller({ currentUser, setCurrentUser }) {
             const data = await res.json();
             if (data.success) {
                 setCurrentUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
+                sessionStorage.setItem('user', JSON.stringify(updatedUser));
+                
+                if (field === 'is_published') {
+                    showToast(updatedValue ? "Đã bật: Quán đang hiển thị trên sàn!" : "Đã ẩn: Quán đã tạm ẩn khỏi sàn!", updatedValue ? "success" : "info");
+                } else {
+                    showToast(updatedValue ? "Đã mở cửa đón khách đặt món!" : "Đã chuyển sang trạng thái đóng cửa!", updatedValue ? "success" : "info");
+                }
             }
         } catch (err) {
             console.error("Lỗi cập nhật trạng thái quán:", err);
+            showToast("Lỗi kết nối máy chủ khi cập nhật quán!", "error");
         }
     };
 
-    // Đổi Avatar Quán
     const handleUpdateAvatar = async () => {
-        if (!avatarFile) return alert("Vui lòng chọn 1 tấm ảnh trước!");
+        if (!avatarFile) return showToast("Vui lòng chọn 1 tấm ảnh trước!", "warning");
         const formData = new FormData();
         formData.append('avatar', avatarFile);
         formData.append('sellerId', currentUser.id);
@@ -97,23 +201,63 @@ export default function Seller({ currentUser, setCurrentUser }) {
             });
             const data = await res.json();
             if (data.success) {
-                alert(data.message);
+                showToast(data.message || "Đổi ảnh đại diện quán thành công!", "success");
                 const updatedUser = { ...currentUser, avatar: data.avatarUrl };
                 setCurrentUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
+                sessionStorage.setItem('user', JSON.stringify(updatedUser));
                 setAvatarFile(null);
                 const inputEl = document.getElementById('avatarInput');
                 if (inputEl) inputEl.value = '';
             } else {
-                alert(data.message || "Lỗi đổi avatar!");
+                showToast(data.message || "Lỗi đổi avatar!", "error");
             }
         } catch (err) {
             console.error(err);
-            alert("Lỗi kết nối máy chủ!");
+            showToast("Lỗi kết nối máy chủ!", "error");
         }
     };
 
-    // Thêm hoặc Cập nhật món ăn
+    const handleSaveShopInfo = async (e) => {
+        e.preventDefault();
+        setIsSavingShopInfo(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/seller/update-shop-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sellerId: currentUser.id,
+                    shopName: shopNameInput,
+                    shopCategory: shopCategoryInput,
+                    shopDescription: shopDescriptionInput,
+                    shopAddress: shopAddressInput,
+                    phone: shopPhoneInput
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const updatedUser = {
+                    ...currentUser,
+                    shop_name: shopNameInput,
+                    shop_category: shopCategoryInput,
+                    shop_description: shopDescriptionInput,
+                    shop_address: shopAddressInput,
+                    phone: shopPhoneInput
+                };
+                setCurrentUser(updatedUser);
+                sessionStorage.setItem('user', JSON.stringify(updatedUser));
+                showToast("Cập nhật thông tin quán thành công!", "success");
+            } else {
+                showToast(data.message || "Không thể lưu thông tin quán!", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Lỗi kết nối máy chủ!", "error");
+        } finally {
+            setIsSavingShopInfo(false);
+        }
+    };
+
+    // --- CÁC HÀM THAO TÁC MÓN ĂN (TAB 2) ---
     const handleAddOrUpdateFood = async (e) => {
         e.preventDefault();
         const formData = new FormData();
@@ -124,7 +268,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
         if (newFoodImgFile) {
             formData.append('image', newFoodImgFile);
         } else if (!editFoodId) {
-            return alert("Vui lòng chọn ảnh cho món ăn!");
+            return showToast("Vui lòng chọn ảnh cho món ăn!", "warning");
         }
 
         try {
@@ -135,9 +279,11 @@ export default function Seller({ currentUser, setCurrentUser }) {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    alert(data.message);
+                    showToast(data.message || "Cập nhật món thành công!", "success");
                     cancelEdit();
                     fetchMenu(currentUser.id);
+                } else {
+                    showToast(data.message || "Lỗi cập nhật món ăn!", "error");
                 }
             } else {
                 const res = await fetch('http://localhost:5000/api/seller/add-food', {
@@ -146,14 +292,16 @@ export default function Seller({ currentUser, setCurrentUser }) {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    alert(data.message);
+                    showToast(data.message || "Thêm món ăn thành công!", "success");
                     cancelEdit();
                     fetchMenu(currentUser.id);
+                } else {
+                    showToast(data.message || "Lỗi thêm món ăn!", "error");
                 }
             }
         } catch (err) {
             console.error(err);
-            alert("Lỗi kết nối khi lưu món ăn!");
+            showToast("Lỗi kết nối khi lưu món ăn!", "error");
         }
     };
 
@@ -176,7 +324,6 @@ export default function Seller({ currentUser, setCurrentUser }) {
         if (fileInput) fileInput.value = '';
     };
 
-    // Bật/tắt trạng thái Mở bán / Báo hết
     const toggleFoodStatus = async (food) => {
         try {
             await fetch('http://localhost:5000/api/seller/toggle-status', {
@@ -184,30 +331,55 @@ export default function Seller({ currentUser, setCurrentUser }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: food.id, is_sold_out: !food.is_sold_out })
             });
+            showToast(food.is_sold_out ? `Đã mở bán lại món "${food.name}"` : `Đã báo hết món "${food.name}"`, "info");
             fetchMenu(currentUser.id);
         } catch (err) {
             console.error(err);
+            showToast("Lỗi cập nhật trạng thái món!", "error");
         }
     };
 
-    // Xóa món ăn
-    const handleDeleteFood = async (id, name) => {
-        if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn món "${name}"?`)) {
-            try {
-                const res = await fetch(`http://localhost:5000/api/seller/delete-food/${id}`, {
-                    method: 'DELETE'
-                });
-                const data = await res.json();
-                if (data.success) {
-                    fetchMenu(currentUser.id);
-                }
-            } catch (err) {
-                console.error(err);
+    const handleDeleteFood = (id, name) => {
+        setDeleteFoodModal({
+            isOpen: true,
+            foodId: id,
+            foodName: name
+        });
+    };
+
+    const handleConfirmDeleteFood = async () => {
+        if (!deleteFoodModal.foodId) return;
+        try {
+            const res = await fetch(`http://localhost:5000/api/seller/delete-food/${deleteFoodModal.foodId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`Đã xóa món "${deleteFoodModal.foodName}" thành công!`, "success");
+                fetchMenu(currentUser.id);
+            } else {
+                showToast(data.message || "Lỗi xóa món ăn!", "error");
             }
+        } catch (err) {
+            console.error(err);
+            showToast("Lỗi kết nối khi xóa món!", "error");
+        } finally {
+            setDeleteFoodModal({ isOpen: false, foodId: null, foodName: '' });
         }
     };
 
-    // Đổi trạng thái đơn hàng (Xác nhận đơn / Giao xong)
+    // Lọc danh sách món ăn theo tìm kiếm & trạng thái
+    const displayedFoods = useMemo(() => {
+        return foods.filter(food => {
+            const matchesSearch = food.name.toLowerCase().includes(menuSearch.toLowerCase().trim());
+            if (!matchesSearch) return false;
+            if (menuFilter === 'selling') return !food.is_sold_out;
+            if (menuFilter === 'sold_out') return !!food.is_sold_out;
+            return true;
+        });
+    }, [foods, menuSearch, menuFilter]);
+
+    // --- CÁC HÀM THAO TÁC ĐƠN HÀNG (TAB 3) ---
     const handleUpdateOrderStatus = async (orderId, status) => {
         try {
             const res = await fetch('http://localhost:5000/api/seller/update-order-status', {
@@ -216,12 +388,49 @@ export default function Seller({ currentUser, setCurrentUser }) {
                 body: JSON.stringify({ orderId, status })
             });
             if (res.ok) {
+                showToast(status === 'accepted' ? `Đã xác nhận đơn #${orderId}` : `Đã hoàn thành đơn #${orderId}`, "success");
                 fetchSellerOrders();
+            } else {
+                showToast("Không thể cập nhật đơn hàng!", "error");
             }
         } catch (err) {
             console.error(err);
+            showToast("Lỗi kết nối khi cập nhật đơn hàng!", "error");
         }
     };
+
+    // Từ chối nhận đơn hàng
+    const handleConfirmReject = async (e) => {
+        e.preventDefault();
+        if (!rejectModal.orderId) return;
+        try {
+            const res = await fetch('http://localhost:5000/api/seller/update-order-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: rejectModal.orderId,
+                    status: 'cancelled',
+                    cancel_reason: rejectModal.reason
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`Đã từ chối đơn hàng #${rejectModal.orderId}`, "info");
+                setRejectModal({ isOpen: false, orderId: null, reason: '' });
+                fetchSellerOrders();
+            } else {
+                showToast(data.message || "Không thể từ chối đơn!", "error");
+            }
+        } catch (err) {
+            showToast("Lỗi kết nối khi từ chối đơn!", "error");
+        }
+    };
+
+    // Lọc đơn hàng theo tab trạng thái
+    const displayedOrders = useMemo(() => {
+        if (orderFilter === 'all') return sellerOrders;
+        return sellerOrders.filter(o => o.status === orderFilter);
+    }, [sellerOrders, orderFilter]);
 
     // Nếu chưa đăng nhập hoặc không phải seller
     if (!currentUser || currentUser.role !== 'seller') {
@@ -241,158 +450,312 @@ export default function Seller({ currentUser, setCurrentUser }) {
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '30px 20px', fontFamily: 'Arial, sans-serif', color: '#fff' }}>
             
-            {/* THANH ĐIỀU HƯỚNG TAB: THỰC ĐƠN & ĐƠN HÀNG */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '2px solid #333', paddingBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <h2 style={{ margin: 0, fontSize: '24px' }}>
-                        🏪 Quản lý quán: <span style={{ color: '#ee4d2d' }}>{currentUser.shop_name}</span>
-                    </h2>
-                    <span style={{ fontSize: '13px', background: '#333', padding: '4px 10px', borderRadius: '20px', color: '#aaa' }}>
-                        {currentUser.shop_category || 'Đồ ăn'}
-                    </span>
+            {/* THANH HEADER ĐIỀU HƯỚNG TỔNG THỂ */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '2px solid #333', paddingBottom: '18px', flexWrap: 'wrap', gap: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <img 
+                        src={currentUser.avatar || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836'} 
+                        alt="Avatar Shop" 
+                        style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #ee4d2d' }} 
+                    />
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: '22px' }}>
+                            🏪 Quản lý: <span style={{ color: '#ee4d2d' }}>{currentUser.shop_name}</span>
+                        </h2>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '13px', color: '#aaa' }}>
+                            <span style={{ background: '#333', padding: '2px 8px', borderRadius: '12px' }}>
+                                {currentUser.shop_category || 'Đồ ăn'}
+                            </span>
+                            <span>•</span>
+                            <span style={{ color: currentUser.is_open ? '#28a745' : '#ff4d4f' }}>
+                                {currentUser.is_open ? '● Mở cửa' : '● Đóng cửa'}
+                            </span>
+                            <span>•</span>
+                            <span style={{ color: currentUser.is_published ? '#28a745' : '#888' }}>
+                                {currentUser.is_published ? 'Hiển thị trên sàn' : 'Đã ẩn sàn'}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px' }}>
+                {/* 4 TAB ĐIỀU HƯỚNG NGHIỆP VỤ */}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button 
+                        onClick={() => setActiveSellerTab('revenue')}
+                        style={getTabButtonStyle(activeSellerTab === 'revenue')}
+                    >
+                        📊 Doanh Thu & Thống Kê
+                    </button>
+
                     <button 
                         onClick={() => setActiveSellerTab('menu')}
-                        style={{ 
-                            padding: '10px 22px', 
-                            border: 'none', 
-                            borderRadius: '6px', 
-                            cursor: 'pointer', 
-                            background: activeSellerTab === 'menu' ? '#ee4d2d' : '#2a2a2a', 
-                            color: activeSellerTab === 'menu' ? '#fff' : '#aaa', 
-                            fontWeight: 'bold',
-                            fontSize: '14px',
-                            transition: 'all 0.2s'
-                        }}
+                        style={getTabButtonStyle(activeSellerTab === 'menu')}
                     >
-                        📋 Thực Đơn & Trạng Thái
+                        📋 Thực Đơn ({foods.length})
                     </button>
                     
                     <button 
                         onClick={() => setActiveSellerTab('orders')}
-                        style={{ 
-                            position: 'relative', 
-                            padding: '10px 22px', 
-                            border: 'none', 
-                            borderRadius: '6px', 
-                            cursor: 'pointer', 
-                            background: activeSellerTab === 'orders' ? '#ee4d2d' : '#2a2a2a', 
-                            color: activeSellerTab === 'orders' ? '#fff' : '#aaa', 
-                            fontWeight: 'bold',
-                            fontSize: '14px',
-                            transition: 'all 0.2s'
-                        }}
+                        style={{ ...getTabButtonStyle(activeSellerTab === 'orders'), position: 'relative' }}
                     >
-                        📦 Quản Lý Đơn Hàng ({sellerOrders.length})
-                        {hasNewOrders && (
+                        📦 Đơn Hàng ({sellerOrders.length})
+                        {pendingOrdersCount > 0 && (
                             <span 
-                                title="Có đơn mới chờ xác nhận"
+                                title={`${pendingOrdersCount} đơn chờ xác nhận`}
                                 style={{ 
                                     position: 'absolute', 
-                                    top: '-4px', 
-                                    right: '-4px', 
-                                    width: '12px', 
-                                    height: '12px', 
+                                    top: '-6px', 
+                                    right: '-6px', 
                                     background: '#ff4d4f', 
-                                    borderRadius: '50%', 
-                                    border: '2px solid #1a1a1a', 
+                                    color: '#fff',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold',
+                                    padding: '2px 7px',
+                                    borderRadius: '10px',
                                     boxShadow: '0 0 8px #ff4d4f' 
                                 }}
-                            />
+                            >
+                                {pendingOrdersCount}
+                            </span>
                         )}
+                    </button>
+
+                    <button 
+                        onClick={() => setActiveSellerTab('settings')}
+                        style={getTabButtonStyle(activeSellerTab === 'settings')}
+                    >
+                        ⚙️ Cài Đặt Quán
                     </button>
                 </div>
             </div>
 
-            {/* TAB 1: QUẢN LÝ THỰC ĐƠN VÀ TRẠNG THÁI QUÁN */}
-            {activeSellerTab === 'menu' && (
-                <>
-                    {/* PANEL QUẢN LÝ TRẠNG THÁI & AVATAR QUÁN */}
-                    <div style={{ background: '#222', padding: '20px', borderRadius: '8px', marginBottom: '25px', border: '1px solid #333', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                <img 
-                                    src={currentUser.avatar || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836'} 
-                                    alt="Avatar Shop" 
-                                    style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #ee4d2d' }} 
-                                />
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '18px' }}>⚙️ Hoạt động & Thông tin quán</h3>
-                                    <p style={{ fontSize: '13px', color: '#999', margin: '5px 0 10px 0' }}>
-                                        Chỉ khi <strong>Đang Hiện Sàn</strong> và <strong>Đang Mở Cửa</strong> thì khách hàng mới thấy và đặt món được.
-                                    </p>
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            id="avatarInput" 
-                                            onChange={e => setAvatarFile(e.target.files[0])} 
-                                            style={{ fontSize: '12px', color: '#ccc', maxWidth: '200px' }} 
-                                        />
-                                        <button 
-                                            onClick={handleUpdateAvatar} 
-                                            style={{ padding: '6px 14px', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
-                                        >
-                                            Đổi Avatar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div style={{ display: 'flex', gap: '15px' }}>
-                                <button 
-                                    onClick={() => toggleShopSettings('is_published', currentUser.is_published)}
-                                    style={{ 
-                                        padding: '12px 18px', 
-                                        borderRadius: '6px', 
-                                        border: 'none', 
-                                        cursor: 'pointer', 
-                                        fontWeight: 'bold', 
-                                        fontSize: '14px',
-                                        background: currentUser.is_published ? '#28a745' : '#444', 
-                                        color: '#fff',
-                                        transition: 'background 0.2s'
+            {/* ========================================================= */}
+            {/* TAB 1: DOANH THU & THỐNG KÊ KINH DOANH */}
+            {/* ========================================================= */}
+            {activeSellerTab === 'revenue' && (
+                <div>
+                    {/* BỘ LỌC THỜI GIAN DOANH THU */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '18px' }}>Báo Cáo Hoạt Động & Doanh Thu</h3>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#888' }}>
+                                Dữ liệu được tính toán dựa trên các đơn hàng khách đã hoàn tất thành công.
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', background: '#222', padding: '4px', borderRadius: '8px', border: '1px solid #333', gap: '4px' }}>
+                            {[
+                                { key: 'today', label: 'Hôm nay' },
+                                { key: 'week', label: '7 ngày qua' },
+                                { key: 'month', label: '30 ngày qua' },
+                                { key: 'all', label: 'Toàn thời gian' }
+                            ].map(item => (
+                                <button
+                                    key={item.key}
+                                    onClick={() => setRevenueTimeRange(item.key)}
+                                    style={{
+                                        padding: '7px 14px',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        background: revenueTimeRange === item.key ? '#ee4d2d' : 'transparent',
+                                        color: revenueTimeRange === item.key ? '#fff' : '#aaa',
+                                        transition: 'all 0.2s'
                                     }}
                                 >
-                                    {currentUser.is_published ? '✅ Đang Hiện Sàn' : '👁️ Đã Ẩn Khỏi Sàn'}
+                                    {item.label}
                                 </button>
-                                
-                                <button 
-                                    onClick={() => toggleShopSettings('is_open', currentUser.is_open)}
-                                    style={{ 
-                                        padding: '12px 18px', 
-                                        borderRadius: '6px', 
-                                        border: 'none', 
-                                        cursor: 'pointer', 
-                                        fontWeight: 'bold', 
-                                        fontSize: '14px',
-                                        background: currentUser.is_open ? '#007bff' : '#dc3545', 
-                                        color: '#fff',
-                                        transition: 'background 0.2s'
-                                    }}
-                                >
-                                    {currentUser.is_open ? '🟢 Đang Mở Cửa' : '🔴 Đang Đóng Cửa'}
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
+                    {/* 4 THẺ KPI CHỈ SỐ QUAN TRỌNG */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px', marginBottom: '30px' }}>
+                        {/* Thẻ 1: Doanh thu thực tế */}
+                        <div style={kpiCardStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> DOANH THU THỰC TẾ</span>
+                                <span style={{ fontSize: '20px' }}>📈</span>
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: '26px', color: '#52c41a' }}>
+                                {totalRevenue.toLocaleString('vi-VN')}đ
+                            </h3>
+                            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#888' }}>
+                                Từ {completedOrdersCount} đơn đã giao thành công
+                            </p>
+                        </div>
+
+                        {/* Thẻ 2: Tổng đơn hoàn thành */}
+                        <div style={kpiCardStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> ĐƠN HOÀN THÀNH</span>
+                                <span style={{ fontSize: '20px' }}>✅</span>
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: '26px', color: '#1890ff' }}>
+                                {completedOrdersCount} <span style={{ fontSize: '15px', color: '#888' }}>/ {filteredOrders.length} đơn</span>
+                            </h3>
+                            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#888' }}>
+                                Tỷ lệ hoàn thành: {filteredOrders.length > 0 ? Math.round((completedOrdersCount / filteredOrders.length) * 100) : 0}%
+                            </p>
+                        </div>
+
+                        {/* Thẻ 3: Đơn chờ xử lý */}
+                        <div style={kpiCardStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> ĐƠN CẦN XỬ LÝ</span>
+                                <span style={{ fontSize: '20px' }}>🔴</span>
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: '26px', color: pendingOrdersCount > 0 ? '#ff4d4f' : '#fff' }}>
+                                {pendingOrdersCount} <span style={{ fontSize: '15px', color: '#888' }}>đơn chờ duyệt</span>
+                            </h3>
+                            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#888' }}>
+                                {pendingOrdersCount > 0 ? 'Có khách đang chờ xác nhận đơn!' : 'Tất cả đơn đều đã được xử lý'}
+                            </p>
+                        </div>
+
+                        {/* Thẻ 4: Tổng món trong kho */}
+                        <div style={kpiCardStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> THỰC ĐƠN QUÁN</span>
+                                <span style={{ fontSize: '20px' }}>📋</span>
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: '26px', color: '#fa8c16' }}>
+                                {foods.length} <span style={{ fontSize: '15px', color: '#888' }}>món ăn</span>
+                            </h3>
+                            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#888' }}>
+                                {foods.filter(f => !f.is_sold_out).length} món đang mở bán trực tiếp
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* KHU VỰC: TOP MÓN BÁN CHẠY NHẤT & LỊCH SỬ DÒNG TIỀN */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+                        
+                        {/* CỘT TRÁI: TOP MÓN BÁN CHẠY NHẤT */}
+                        <div style={{ background: '#222', borderRadius: '8px', padding: '22px', border: '1px solid #333' }}>
+                            <h3 style={{ margin: '0 0 15px 0', fontSize: '17px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🏆 Top Món Ăn Bán Chạy Nhất
+                            </h3>
+                            
+                            {bestSellers.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px 10px', color: '#888', fontSize: '13px' }}>
+                                    <p style={{ fontSize: '32px', margin: '0 0 8px 0' }}>🍽️</p>
+                                    Chưa có dữ liệu bán hàng trong khoảng thời gian này.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {bestSellers.slice(0, 5).map((item, idx) => (
+                                        <div 
+                                            key={idx}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                background: '#1c1c1c',
+                                                padding: '12px 14px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #2e2e2e'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span style={{ 
+                                                    width: '26px', height: '26px', borderRadius: '50%', 
+                                                    background: idx === 0 ? '#faad14' : idx === 1 ? '#d9d9d9' : idx === 2 ? '#d48806' : '#333',
+                                                    color: idx < 3 ? '#000' : '#aaa',
+                                                    fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }}>
+                                                    {idx + 1}
+                                                </span>
+                                                <div>
+                                                    <h4 style={{ margin: 0, fontSize: '14px', color: '#fff' }}>{item.name}</h4>
+                                                    <span style={{ fontSize: '12px', color: '#888' }}>
+                                                        Đã bán: <strong style={{ color: '#ee4d2d' }}>{item.quantity} phần</strong>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ textAlign: 'right' }}>
+                                                <span style={{ fontSize: '14px', color: '#52c41a', fontWeight: 'bold' }}>
+                                                    {item.revenue.toLocaleString('vi-VN')}đ
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* CỘT PHẢI: ĐƠN HÀNG HOÀN THÀNH GẦN NHẤT */}
+                        <div style={{ background: '#222', borderRadius: '8px', padding: '22px', border: '1px solid #333' }}>
+                            <h3 style={{ margin: '0 0 15px 0', fontSize: '17px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                💵 Dòng Tiền Đơn Hàng Gần Đây
+                            </h3>
+
+                            {completedOrdersCount === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px 10px', color: '#888', fontSize: '13px' }}>
+                                    <p style={{ fontSize: '32px', margin: '0 0 8px 0' }}>🧾</p>
+                                    Chưa có đơn hàng hoàn thành nào trong khoảng thời gian này.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {filteredOrders.filter(o => o.status === 'completed').slice(0, 5).map(order => (
+                                        <div 
+                                            key={order.id}
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                background: '#1c1c1c',
+                                                padding: '12px 14px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #2e2e2e'
+                                            }}
+                                        >
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <strong style={{ fontSize: '14px', color: '#fff' }}>Đơn #{order.id}</strong>
+                                                    <span style={{ fontSize: '11px', color: '#888' }}>
+                                                        {order.payment_method === 'CK' ? '💳 VietQR' : '💵 Tiền mặt'}
+                                                    </span>
+                                                </div>
+                                                <span style={{ fontSize: '11px', color: '#666' }}>
+                                                    {order.created_at ? new Date(order.created_at).toLocaleString('vi-VN') : ''}
+                                                </span>
+                                            </div>
+
+                                            <span style={{ fontSize: '15px', color: '#52c41a', fontWeight: 'bold' }}>
+                                                +{Number(order.total_price || 0).toLocaleString('vi-VN')}đ
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* TAB 2: QUẢN LÝ THỰC ĐƠN MÓN ĂN */}
+            {/* ========================================================= */}
+            {activeSellerTab === 'menu' && (
+                <div>
                     {/* FORM THÊM / CẬP NHẬT MÓN ĂN */}
                     <form 
                         onSubmit={handleAddOrUpdateFood} 
                         style={{ 
                             background: '#222', 
-                            padding: '20px', 
+                            padding: '22px', 
                             borderRadius: '8px', 
-                            marginBottom: '30px', 
+                            marginBottom: '25px', 
                             border: editFoodId ? '2px solid #007bff' : '1px solid #333',
                             boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
                         }}
                     >
                         <h3 style={{ margin: '0 0 15px 0', color: editFoodId ? '#007bff' : '#fff', fontSize: '17px' }}>
-                            {editFoodId ? '✏️ Cập nhật thông tin món ăn' : '➕ Thêm món ăn mới vào thực đơn'}
+                            {editFoodId ? '✏️ Cập nhật thông tin món ăn' : '➕ Thêm món ăn mới vào thực đơn quán'}
                         </h3>
                         
                         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -452,28 +815,70 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         </div>
                     </form>
 
-                    {/* DANH SÁCH MÓN ĂN */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                        <h3 style={{ margin: 0, fontSize: '18px' }}>
-                            📋 Danh sách món ăn ({foods.length} món)
-                        </h3>
+                    {/* BỘ LỌC VÀ TÌM KIẾM MÓN ĂN */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, maxWidth: '350px' }}>
+                            <input
+                                type="text"
+                                placeholder="🔍 Tìm kiếm món ăn trong quán..."
+                                value={menuSearch}
+                                onChange={e => setMenuSearch(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '9px 14px',
+                                    background: '#222',
+                                    border: '1px solid #444',
+                                    borderRadius: '6px',
+                                    color: '#fff',
+                                    fontSize: '13px',
+                                    outline: 'none'
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            {[
+                                { key: 'all', label: `Tất cả (${foods.length})` },
+                                { key: 'selling', label: `Đang mở bán (${foods.filter(f => !f.is_sold_out).length})` },
+                                { key: 'sold_out', label: `Hết hàng (${foods.filter(f => f.is_sold_out).length})` }
+                            ].map(item => (
+                                <button
+                                    key={item.key}
+                                    onClick={() => setMenuFilter(item.key)}
+                                    style={{
+                                        padding: '7px 14px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #444',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        background: menuFilter === item.key ? '#ee4d2d' : '#222',
+                                        color: menuFilter === item.key ? '#fff' : '#aaa',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    {foods.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '50px 20px', background: '#222', borderRadius: '8px', border: '1px solid #333', color: '#888' }}>
-                            <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>Kho món ăn của quán hiện đang trống.</p>
-                            <p style={{ fontSize: '13px', margin: 0 }}>Hãy điền thông tin vào form phía trên để thêm món ăn đầu tiên nhé!</p>
+                    {/* DANH SÁCH MÓN ĂN */}
+                    {displayedFoods.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '60px 20px', background: '#222', borderRadius: '8px', border: '1px solid #333', color: '#888' }}>
+                            <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>Không tìm thấy món ăn nào phù hợp.</p>
+                            <p style={{ fontSize: '13px', margin: 0 }}>Hãy thử tìm kiếm với từ khóa khác hoặc thêm món mới ở form phía trên!</p>
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
-                            {foods.map(food => (
+                            {displayedFoods.map(food => (
                                 <div 
                                     key={food.id} 
                                     style={{ 
                                         background: '#222', 
                                         borderRadius: '8px', 
                                         overflow: 'hidden', 
-                                        border: '1px solid #333',
+                                        border: '1px solid #333', 
                                         boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
                                         display: 'flex', 
                                         flexDirection: 'column',
@@ -545,25 +950,58 @@ export default function Seller({ currentUser, setCurrentUser }) {
                             ))}
                         </div>
                     )}
-                </>
+                </div>
             )}
 
-            {/* TAB 2: QUẢN LÝ ĐƠN HÀNG */}
+            {/* ========================================================= */}
+            {/* TAB 3: QUẢN LÝ ĐƠN HÀNG */}
+            {/* ========================================================= */}
             {activeSellerTab === 'orders' && (
-                <div style={{ marginTop: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ margin: 0, fontSize: '18px' }}>Danh sách Đơn Hàng Của Khách</h3>
-                        <span style={{ fontSize: '13px', color: '#888' }}>Tự động làm mới mỗi 5 giây</span>
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '18px' }}>Danh Sách Đơn Hàng Của Khách</h3>
+                            <span style={{ fontSize: '12px', color: '#888' }}>Hệ thống tự động cập nhật đơn mới mỗi 5 giây</span>
+                        </div>
+
+                        {/* BỘ LỌC TRẠNG THÁI ĐƠN HÀNG */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {[
+                                { key: 'all', label: `Tất cả (${sellerOrders.length})` },
+                                { key: 'pending', label: `🔴 Chờ xác nhận (${sellerOrders.filter(o => o.status === 'pending').length})` },
+                                { key: 'accepted', label: `🔵 Đang chuẩn bị (${sellerOrders.filter(o => o.status === 'accepted').length})` },
+                                { key: 'completed', label: `🟢 Đã hoàn thành (${sellerOrders.filter(o => o.status === 'completed').length})` },
+                                { key: 'cancelled', label: `❌ Đã từ chối (${sellerOrders.filter(o => o.status === 'cancelled').length})` }
+                            ].map(item => (
+                                <button
+                                    key={item.key}
+                                    onClick={() => setOrderFilter(item.key)}
+                                    style={{
+                                        padding: '7px 14px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #444',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        background: orderFilter === item.key ? '#ee4d2d' : '#222',
+                                        color: orderFilter === item.key ? '#fff' : '#aaa',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    {sellerOrders.length === 0 ? (
+                    {displayedOrders.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '60px 20px', background: '#222', borderRadius: '8px', border: '1px solid #333', color: '#888' }}>
-                            <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>Chưa có đơn hàng nào.</p>
+                            <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>Không có đơn hàng nào trong mục này.</p>
                             <p style={{ fontSize: '13px', margin: 0 }}>Khi có khách đặt món qua App, đơn hàng sẽ hiển thị tại đây ngay lập tức!</p>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            {sellerOrders.map(order => {
+                            {displayedOrders.map(order => {
                                 let cartItems = [];
                                 try {
                                     cartItems = JSON.parse(order.cart_details || '[]');
@@ -576,10 +1014,11 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                         key={order.id} 
                                         style={{ 
                                             background: order.status === 'pending' ? '#2e261f' : '#222', 
-                                            border: order.status === 'pending' ? '1px solid #ee4d2d' : '1px solid #333', 
+                                            border: order.status === 'pending' ? '1px solid #ee4d2d' : (order.status === 'cancelled' ? '1px solid #552222' : '1px solid #333'), 
                                             borderRadius: '8px', 
                                             padding: '20px',
-                                            boxShadow: '0 3px 12px rgba(0,0,0,0.3)'
+                                            boxShadow: '0 3px 12px rgba(0,0,0,0.3)',
+                                            opacity: order.status === 'cancelled' ? 0.75 : 1
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #3a3a3a', paddingBottom: '12px', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
@@ -595,11 +1034,11 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                 fontWeight: 'bold', 
                                                 padding: '4px 12px', 
                                                 borderRadius: '20px',
-                                                background: order.status === 'pending' ? '#ff4d4f22' : (order.status === 'accepted' ? '#007bff22' : '#28a74522'),
-                                                color: order.status === 'pending' ? '#ff4d4f' : (order.status === 'accepted' ? '#1890ff' : '#52c41a'),
-                                                border: `1px solid ${order.status === 'pending' ? '#ff4d4f' : (order.status === 'accepted' ? '#1890ff' : '#52c41a')}`
+                                                background: order.status === 'pending' ? '#ff4d4f22' : (order.status === 'accepted' ? '#007bff22' : (order.status === 'cancelled' ? '#ff4d4f22' : '#28a74522')),
+                                                color: order.status === 'pending' ? '#ff4d4f' : (order.status === 'accepted' ? '#1890ff' : (order.status === 'cancelled' ? '#ff4d4f' : '#52c41a')),
+                                                border: `1px solid ${order.status === 'pending' ? '#ff4d4f' : (order.status === 'accepted' ? '#1890ff' : (order.status === 'cancelled' ? '#ff4d4f' : '#52c41a'))}`
                                             }}>
-                                                {order.status === 'pending' ? '🔴 Chờ xác nhận' : (order.status === 'accepted' ? '🔵 Đang chuẩn bị' : '🟢 Đã hoàn thành')}
+                                                {order.status === 'pending' ? '🔴 Chờ xác nhận' : (order.status === 'accepted' ? '🔵 Đang chuẩn bị' : (order.status === 'cancelled' ? '❌ Đã từ chối' : '🟢 Đã hoàn thành'))}
                                             </span>
                                         </div>
 
@@ -613,6 +1052,56 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                     </div>
                                                 ))}
                                             </div>
+
+                                            {/* HIỂN THỊ GHI CHÚ CỦA KHÁCH NẾU CÓ */}
+                                            {order.note && (
+                                                <div style={{
+                                                    marginTop: '12px',
+                                                    padding: '10px 14px',
+                                                    background: '#332616',
+                                                    border: '1px solid #fa8c16',
+                                                    borderRadius: '6px',
+                                                    fontSize: '13px',
+                                                    display: 'flex',
+                                                    gap: '10px',
+                                                    alignItems: 'flex-start'
+                                                }}>
+                                                    <span style={{ fontSize: '16px' }}>📝</span>
+                                                    <div>
+                                                        <strong style={{ color: '#ffa940' }}>Ghi chú của khách cho quán:</strong>
+                                                        <div style={{ color: '#fff', marginTop: '2px', fontStyle: 'italic' }}>"{order.note}"</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* HIỂN THỊ LÝ DO TỪ CHỐI NẾU CÓ */}
+                                            {order.cancel_reason && (
+                                                <div style={{
+                                                    marginTop: '12px',
+                                                    padding: '10px 14px',
+                                                    background: 'rgba(255, 77, 79, 0.12)',
+                                                    border: '1px solid rgba(255, 77, 79, 0.4)',
+                                                    borderRadius: '6px',
+                                                    fontSize: '13px',
+                                                    display: 'flex',
+                                                    gap: '10px',
+                                                    alignItems: 'flex-start'
+                                                }}>
+                                                    <span style={{ fontSize: '16px' }}>🚫</span>
+                                                    <div>
+                                                        <strong style={{ color: '#ff7875' }}>Lý do quán từ chối nhận đơn:</strong>
+                                                        <div style={{ color: '#fff', marginTop: '2px' }}>"{order.cancel_reason}"</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* HIỂN THỊ VOUCHER ĐÃ ÁP DỤNG NẾU CÓ */}
+                                            {order.voucher_code && (
+                                                <div style={{ marginTop: '8px', fontSize: '13px', color: '#52c41a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>🎟️</span>
+                                                    <span>Khách đã dùng Voucher: <strong style={{ textDecoration: 'underline' }}>{order.voucher_code}</strong> (Đã trừ: -{Number(order.discount_amount || 0).toLocaleString('vi-VN')}đ)</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1c1c1c', padding: '12px 16px', borderRadius: '6px', flexWrap: 'wrap', gap: '10px' }}>
@@ -625,14 +1114,36 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                 </h4>
                                             </div>
                                             
-                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                                 {order.status === 'pending' && (
-                                                    <button 
-                                                        onClick={() => handleUpdateOrderStatus(order.id, 'accepted')}
-                                                        style={{ padding: '8px 18px', background: '#ee4d2d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-                                                    >
-                                                        ✅ Xác nhận đơn
-                                                    </button>
+                                                    <>
+                                                        <button 
+                                                            onClick={() => setRejectModal({
+                                                                isOpen: true,
+                                                                orderId: order.id,
+                                                                reason: 'Quán đang tạm thời quá tải đơn'
+                                                            })}
+                                                            style={{ 
+                                                                padding: '8px 14px', 
+                                                                background: '#ff4d4f22', 
+                                                                color: '#ff4d4f', 
+                                                                border: '1px solid #ff4d4f', 
+                                                                borderRadius: '4px', 
+                                                                cursor: 'pointer', 
+                                                                fontWeight: 'bold', 
+                                                                fontSize: '13px',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                        >
+                                                            ❌ Từ chối đơn
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateOrderStatus(order.id, 'accepted')}
+                                                            style={{ padding: '8px 18px', background: '#ee4d2d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                                                        >
+                                                            ✅ Xác nhận đơn
+                                                        </button>
+                                                    </>
                                                 )}
                                                 {order.status === 'accepted' && (
                                                     <button 
@@ -647,6 +1158,11 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                         ✔️ Đơn đã xong
                                                     </span>
                                                 )}
+                                                {order.status === 'cancelled' && (
+                                                    <span style={{ color: '#ff4d4f', fontSize: '13px', fontWeight: 'bold' }}>
+                                                        ✖️ Đã hủy
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -656,6 +1172,357 @@ export default function Seller({ currentUser, setCurrentUser }) {
                     )}
                 </div>
             )}
+
+            {/* ========================================================= */}
+            {/* TAB 4: CÀI ĐẶT & HỒ SƠ QUÁN */}
+            {/* ========================================================= */}
+            {activeSellerTab === 'settings' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                    
+                    {/* KHỐI 1: BẬT TẮT TRẠNG THÁI HOẠT ĐỘNG & ĐỔI AVATAR */}
+                    <div style={{ background: '#222', padding: '22px', borderRadius: '8px', border: '1px solid #333' }}>
+                        <h3 style={{ margin: '0 0 15px 0', fontSize: '18px' }}>⚙️ Hoạt Động & Ảnh Đại Diện Quán</h3>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                <img 
+                                    src={currentUser.avatar || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836'} 
+                                    alt="Avatar Shop" 
+                                    style={{ width: '85px', height: '85px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #ee4d2d' }} 
+                                />
+                                <div>
+                                    <h4 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>Ảnh đại diện quán</h4>
+                                    <p style={{ fontSize: '13px', color: '#888', margin: '0 0 10px 0' }}>
+                                        Ảnh này sẽ hiển thị cho khách hàng ở trang chủ và chi tiết quán.
+                                    </p>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            id="avatarInput" 
+                                            onChange={e => setAvatarFile(e.target.files[0])} 
+                                            style={{ fontSize: '12px', color: '#ccc', maxWidth: '200px' }} 
+                                        />
+                                        <button 
+                                            onClick={handleUpdateAvatar} 
+                                            style={{ padding: '6px 14px', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                                        >
+                                            Đổi Avatar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* CÔNG TẮC ĐẨY SÀN & MỞ CỬA */}
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <button 
+                                    onClick={() => toggleShopSettings('is_published', currentUser.is_published)}
+                                    style={{ 
+                                        padding: '12px 18px', 
+                                        borderRadius: '6px', 
+                                        border: 'none', 
+                                        cursor: 'pointer', 
+                                        fontWeight: 'bold', 
+                                        fontSize: '14px', 
+                                        background: currentUser.is_published ? '#28a745' : '#444', 
+                                        color: '#fff',
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    {currentUser.is_published ? '✅ Đang Hiện Sàn' : '👁️ Đã Ẩn Khỏi Sàn'}
+                                </button>
+                                
+                                <button 
+                                    onClick={() => toggleShopSettings('is_open', currentUser.is_open)}
+                                    style={{ 
+                                        padding: '12px 18px', 
+                                        borderRadius: '6px', 
+                                        border: 'none', 
+                                        cursor: 'pointer', 
+                                        fontWeight: 'bold', 
+                                        fontSize: '14px', 
+                                        background: currentUser.is_open ? '#007bff' : '#dc3545', 
+                                        color: '#fff',
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    {currentUser.is_open ? '🟢 Đang Mở Cửa' : '🔴 Đang Đóng Cửa'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* KHỐI 2: FORM THÔNG TIN CHI TIẾT CỦA QUÁN */}
+                    <form onSubmit={handleSaveShopInfo} style={{ background: '#222', padding: '25px', borderRadius: '8px', border: '1px solid #333' }}>
+                        <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#fff' }}>
+                            📝 Thông Tin Chi Tiết Cửa Hàng
+                        </h3>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                            <div>
+                                <label style={formLabelStyle}>Tên quán ăn / cửa hàng *</label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    value={shopNameInput} 
+                                    onChange={e => setShopNameInput(e.target.value)}
+                                    style={formInputStyle} 
+                                />
+                            </div>
+
+                            <div>
+                                <label style={formLabelStyle}>Danh mục kinh doanh *</label>
+                                <select 
+                                    required 
+                                    value={shopCategoryInput} 
+                                    onChange={e => setShopCategoryInput(e.target.value)}
+                                    style={{
+                                        ...formInputStyle,
+                                        cursor: 'pointer'
+                                    }} 
+                                >
+                                    {SHOP_CATEGORIES.map(cat => (
+                                        <option key={cat} value={cat} style={{ background: '#222', color: '#fff' }}>
+                                            {cat}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={formLabelStyle}>Số điện thoại hotline quán *</label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    value={shopPhoneInput} 
+                                    onChange={e => setShopPhoneInput(e.target.value)}
+                                    style={formInputStyle} 
+                                />
+                            </div>
+
+                            <div>
+                                <label style={formLabelStyle}>Địa chỉ chi tiết của quán *</label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+                                    value={shopAddressInput} 
+                                    onChange={e => setShopAddressInput(e.target.value)}
+                                    style={formInputStyle} 
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '25px' }}>
+                            <label style={formLabelStyle}>Mô tả / Giới thiệu ngắn gọn về quán</label>
+                            <textarea 
+                                rows="3"
+                                placeholder="Ví dụ: Chuyên các món ăn đêm tươi ngon, đảm bảo vệ sinh an toàn thực phẩm..."
+                                value={shopDescriptionInput} 
+                                onChange={e => setShopDescriptionInput(e.target.value)}
+                                style={{ ...formInputStyle, resize: 'none' }} 
+                            />
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={isSavingShopInfo}
+                            style={{ 
+                                padding: '12px 28px', 
+                                background: isSavingShopInfo ? '#666' : '#ee4d2d', 
+                                color: '#fff', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                cursor: isSavingShopInfo ? 'not-allowed' : 'pointer', 
+                                fontWeight: 'bold', 
+                                fontSize: '15px' 
+                            }}
+                        >
+                            {isSavingShopInfo ? 'Đang lưu...' : '💾 Lưu Thay Đổi Cài Đặt'}
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* MODAL TỪ CHỐI NHẬN ĐƠN HÀNG */}
+            {/* ========================================================= */}
+            {rejectModal.isOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+                    <div style={{ background: '#1c1f26', padding: '26px', borderRadius: '12px', width: '100%', maxWidth: '480px', border: '1px solid #ff4d4f', boxShadow: '0 20px 50px rgba(0,0,0,0.7)', color: '#fff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255, 77, 79, 0.2)', border: '1px solid #ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+                                🚫
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '18px', color: '#ff4d4f' }}>
+                                    Từ Chối Đơn Hàng #{rejectModal.orderId}
+                                </h3>
+                                <span style={{ fontSize: '12px', color: '#aaa' }}>
+                                    Đơn hàng sẽ chuyển sang trạng thái "Đã từ chối" và gửi thông báo tới khách.
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Chọn nhanh lý do từ chối */}
+                        <div style={{ marginBottom: '14px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '6px' }}>
+                                Chọn nhanh lý do từ chối:
+                            </label>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                {[
+                                    'Quán đang tạm thời quá tải đơn',
+                                    'Hết món / thiếu nguyên liệu',
+                                    'Quán chuẩn bị đóng cửa',
+                                    'Ngoài khoảng cách giao hàng'
+                                ].map(preset => (
+                                    <button
+                                        key={preset}
+                                        type="button"
+                                        onClick={() => setRejectModal(prev => ({ ...prev, reason: preset }))}
+                                        style={{
+                                            padding: '5px 10px',
+                                            background: rejectModal.reason === preset ? '#ff4d4f33' : '#2a2a2a',
+                                            color: rejectModal.reason === preset ? '#ff7875' : '#ccc',
+                                            border: rejectModal.reason === preset ? '1px solid #ff4d4f' : '1px solid #444',
+                                            borderRadius: '4px',
+                                            fontSize: '11px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s'
+                                        }}
+                                    >
+                                        {preset}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleConfirmReject}>
+                            <div style={{ marginBottom: '18px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ff7875', marginBottom: '6px' }}>
+                                    Nội dung lý do từ chối đơn: <span style={{ color: '#ff4d4f' }}>*</span>
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    required
+                                    value={rejectModal.reason}
+                                    onChange={(e) => setRejectModal({ ...rejectModal, reason: e.target.value })}
+                                    placeholder="Nhập lý do gửi tới khách hàng..."
+                                    style={{
+                                        width: '100%',
+                                        background: '#0e1117',
+                                        border: '1px solid #444',
+                                        borderRadius: '6px',
+                                        padding: '10px 12px',
+                                        color: '#fff',
+                                        fontSize: '13px',
+                                        boxSizing: 'border-box',
+                                        resize: 'vertical'
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setRejectModal({ isOpen: false, orderId: null, reason: '' })}
+                                    style={{ padding: '9px 18px', background: '#333', color: '#ccc', border: '1px solid #555', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{ padding: '9px 20px', background: '#ff4d4f', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+                                >
+                                    Xác Nhận Từ Chối
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* MODAL XÁC NHẬN XÓA MÓN ĂN */}
+            {/* ========================================================= */}
+            {deleteFoodModal.isOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+                    <div style={{ background: '#1c1f26', padding: '26px', borderRadius: '12px', width: '100%', maxWidth: '440px', border: '1px solid #444', boxShadow: '0 20px 50px rgba(0,0,0,0.7)', color: '#fff' }}>
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#ff4d4f', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            🗑️ Xác Nhận Xóa Món Ăn
+                        </h3>
+                        <p style={{ fontSize: '14px', color: '#ccc', lineHeight: '1.5', margin: '0 0 20px 0' }}>
+                            Bạn có chắc chắn muốn xóa vĩnh viễn món <strong style={{ color: '#fff' }}>"{deleteFoodModal.foodName}"</strong> khỏi thực đơn quán?
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                type="button"
+                                onClick={() => setDeleteFoodModal({ isOpen: false, foodId: null, foodName: '' })}
+                                style={{ padding: '9px 18px', background: '#333', color: '#ccc', border: '1px solid #555', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmDeleteFood}
+                                style={{
+                                    padding: '9px 20px',
+                                    background: '#ff4d4f',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                Xóa Món
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
+
+// Helpers style
+const getTabButtonStyle = (isActive) => ({
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    background: isActive ? '#ee4d2d' : '#2a2a2a',
+    color: isActive ? '#fff' : '#aaa',
+    fontWeight: 'bold',
+    fontSize: '14px',
+    transition: 'all 0.2s'
+});
+
+const kpiCardStyle = {
+    background: '#222',
+    borderRadius: '8px',
+    padding: '20px',
+    border: '1px solid #333',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.25)'
+};
+
+const formLabelStyle = {
+    display: 'block',
+    fontSize: '13px',
+    color: '#ccc',
+    marginBottom: '6px'
+};
+
+const formInputStyle = {
+    width: '100%',
+    padding: '11px 14px',
+    background: '#1c1c1c',
+    border: '1px solid #444',
+    borderRadius: '6px',
+    color: '#fff',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    outline: 'none'
+};
