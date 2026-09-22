@@ -1,5 +1,5 @@
 -- M-BITE FOOD APP FULL DATABASE DUMP
--- Generated on: 2026-09-22T15:41:20.309Z
+-- Generated on: 2026-09-22T16:15:12.098Z
 -- Database: food_app
 
 CREATE DATABASE IF NOT EXISTS `food_app` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -39,11 +39,7 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 INSERT INTO `users` (`id`, `email`, `phone`, `password`, `is_verified`, `role`, `shop_name`, `shop_category`, `is_published`, `is_open`, `avatar`, `shop_description`, `shop_address`, `address`, `full_name`, `is_blocked`, `created_at`, `ban_reason`) VALUES
 (0, 'admin@mbite.com', '0999999999', '$2b$10$G8NM6MYo18fSzU58dVV4Re5f56obpeAhfJRY3oQdB.v8o8krTSuhS', 1, 'admin', NULL, NULL, 0, 0, 'https://cdn-icons-png.flaticon.com/512/2942/2942813.png', NULL, NULL, NULL, 'Quản Trị Viên Hệ Thống', 0, '2026-09-21 08:54:49', NULL),
-(3, '1@2.com', '0123456789', '2', 1, 'user', NULL, NULL, 0, 0, '/uploads/1790001110511.jpg', NULL, NULL, 'số 17/77 xuân la', 'minh', 0, '2026-09-21 08:54:49', NULL),
-(16, '1@4.com', '0913245678', '4', 1, 'seller', 'bếp ăn đêm', 'Đồ ăn', 1, 1, '/uploads/1789996193140.jpg', '', '123 xuân la', NULL, NULL, 0, '2026-09-21 08:54:49', NULL),
-(17, '1@5.com', '0912365478', '5', 1, 'user', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, '2026-09-21 08:54:49', NULL),
-(18, '1@3.com', '0973167189', '3', 1, 'seller', 'Minh', 'Đồ ăn', 1, 1, '/uploads/1790007270135.jpeg', '', '123 hn', NULL, NULL, 0, '2026-09-21 08:54:49', NULL),
-(20, '1@1.com', '0999999998', '1', 1, 'user', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, '2026-09-22 15:21:31', NULL);
+(16, '1@4.com', '0913245678', '4', 1, 'seller', 'bếp ăn đêm', 'Đồ ăn', 1, 1, '/uploads/1789996193140.jpg', '', '123 xuân la', NULL, NULL, 0, '2026-09-21 08:54:49', NULL);
 
 -- --------------------------------------------------------
 -- Table structure for table `menu`

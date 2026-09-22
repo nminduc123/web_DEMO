@@ -82,7 +82,54 @@ cd frontend
 npm install
 npm run dev
 ```
-- Mở trình duyệt truy cập: **`http://localhost:5173`**
+- Mở trình duyệt truy cập cục bộ: **`http://localhost:5173`**
+
+---
+
+### 5. Hướng dẫn tạo URL chạy Online (Mở ra Internet để truy cập từ điện thoại / máy khác)
+
+Hệ thống đã được cấu hình sẵn **Vite Reverse Proxy** thông minh (mọi request `/api` và `/uploads` đều được tự động định tuyến nội bộ về backend port 5000). Vì vậy, bạn chỉ cần mở Tunnel cho port **`5173`** là toàn bộ trang web, hình ảnh và API sẽ hoạt động trực tuyến 100%!
+
+#### 🌐 Cách 1: Sử dụng Cloudflare Tunnel (Khuyên dùng - Nhanh & Ổn định nhất)
+Dự án đã tích hợp sẵn script **`start_tunnel.bat`** ở thư mục gốc:
+
+1. **Cài đặt `cloudflared` (nếu chưa có)**:
+   - Tải file thực thi `cloudflared.exe` từ trang chủ Cloudflare ([Releases GitHub](https://github.com/cloudflare/cloudflared/releases)).
+   - Hoặc cài nhanh qua winget: `winget install Cloudflare.cloudflared`
+2. **Khởi chạy Tunnel 1-Click**:
+   - Nhấp đúp chuột vào file **`start_tunnel.bat`** ở thư mục gốc dự án.
+   - Hoặc chạy lệnh trong terminal:
+     ```bash
+     cloudflared tunnel --url http://localhost:5173
+     ```
+   - Màn hình console sẽ xuất hiện một đường link dạng:
+     `https://xxxx-yyyy-zzzz.trycloudflare.com`
+   - Bạn chỉ việc copy link này gửi cho bạn bè hoặc mở trên điện thoại từ mạng 4G/5G để trải nghiệm đặt đồ ăn như một trang web thương mại điện tử thực thụ!
+
+#### 🚀 Cách 2: Sử dụng Localtunnel (Không cần cài phần mềm, tự chọn tên miền)
+Chỉ cần máy tính của bạn có cài Node.js, chạy trực tiếp lệnh:
+```bash
+npx localtunnel --port 5173 --subdomain mbite-food
+```
+- Đường link truy cập trực tuyến cố định của bạn sẽ là: **`https://mbite-food.loca.lt`**
+
+#### 🔒 Cách 3: Sử dụng Ngrok
+Nếu bạn có tài khoản ngrok:
+```bash
+ngrok http 5173
+```
+
+#### 👑 Cách 4: Gắn Tên Miền Riêng Thật (Chuẩn Production vĩnh viễn)
+Nếu bạn sở hữu tên miền riêng (ví dụ `mbite.vn` hoặc `mbite.site`):
+1. Trỏ Nameserver của tên miền về tài khoản Cloudflare (miễn phí).
+2. Chạy lệnh tạo tunnel cố định:
+   ```bash
+   cloudflared tunnel login
+   cloudflared tunnel create mbite-tunnel
+   cloudflared tunnel route dns mbite-tunnel mbite.site
+   cloudflared tunnel run mbite-tunnel
+   ```
+- Website của bạn sẽ chạy vĩnh viễn trên tên miền thật với chứng chỉ bảo mật SSL HTTPS xanh miễn phí mà không cần mở cổng modem mạng nhà.
 
 ---
 
@@ -128,6 +175,13 @@ npm run dev
 - **Thanh toán linh hoạt**: Hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản VietQR tự động sinh mã QR.
 - **Theo dõi đơn hàng thời gian thực (`/my-orders`)**: Cập nhật tiến độ món ăn tức thì; hỗ trợ hủy đơn hàng sau 5 phút nếu quán chưa xác nhận.
 - **Đồng bộ khóa tài khoản**: Phát hiện tài khoản bị khóa trong vòng 2 giây và hiển thị màn hình gửi ý kiến phản hồi tới Quản trị viên.
+
+### 4. Bảo mật & Xác thực hiện đại (Security & Authentication)
+- **Chuẩn mật khẩu mạnh**: Bắt buộc mật khẩu đáp ứng 5 tiêu chuẩn khắt khe (tối thiểu 8 ký tự, gồm cả chữ hoa, chữ thường, số và ký tự đặc biệt).
+- **Thanh tiến độ thẩm mỹ**: Thiết kế vi tiến độ 5 vạch siêu mỏng (3px) đổi màu mượt mà theo thời gian thực khi gõ phím, loại bỏ hoàn toàn các khung chữ cồng kềnh.
+- **Mã hóa Bcrypt chuẩn công nghiệp**: Mọi mật khẩu được băm an toàn với `bcryptjs` (salt rounds = 10) trước khi lưu vào MySQL. Tự động nâng cấp hash Bcrypt cho tài khoản cũ khi đăng nhập.
+- **Nút bật/tắt mật khẩu SVG**: Sử dụng icon vector SVG tinh tế (`EyeIcon` / `EyeOffIcon`) đồng bộ trên Đăng ký, Đăng nhập, Đổi mật khẩu và Quên mật khẩu.
+- **Nhận diện thương hiệu M-Bite**: Tab trình duyệt hiển thị tiêu đề thương hiệu chuyên nghiệp cùng favicon logo M-Bite màu trắng tinh khôi, nền trong suốt sắc nét.
 
 ---
 
