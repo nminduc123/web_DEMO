@@ -73,11 +73,33 @@ export default function ForgotPassword() {
         }
     };
 
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Kiểm tra các tiêu chí mật khẩu mạnh
+    const checkPasswordCriteria = (pass) => {
+        return {
+            length: pass.length >= 8,
+            upper: /[A-Z]/.test(pass),
+            lower: /[a-z]/.test(pass),
+            number: /[0-9]/.test(pass),
+            special: /[!@#$%^&*(),.?":{}|<>_\-\[\]\\\/~`+=]/.test(pass)
+        };
+    };
+
+    const criteria = checkPasswordCriteria(newPassword);
+    const passedCount = Object.values(criteria).filter(Boolean).length;
+
     // Bước 3: Đổi mật khẩu mới
     const handleResetPassword = async (e) => {
         e.preventDefault();
         setMessage('');
         setIsError(false);
+
+        if (passedCount < 5) {
+            setIsError(true);
+            setMessage('Mật khẩu mới chưa đủ mạnh! Vui lòng đáp ứng đủ 5 tiêu chuẩn an toàn bên dưới.');
+            return;
+        }
 
         const payloadValue = recoveryType === 'phone' ? `${countryCode}${contactValue}` : contactValue;
 
@@ -206,13 +228,80 @@ export default function ForgotPassword() {
             {step === 3 && (
                 <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: '#ccc' }}>Mật khẩu mới</label>
-                        <input 
-                            type="password" placeholder="Nhập mật khẩu mới" required
-                            value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                            style={{ width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid #444', background: '#1c1c1c', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
-                        />
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#ccc' }}>Mật khẩu mới *</label>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                            <input 
+                                type={showPassword ? "text" : "password"} 
+                                placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)" 
+                                required
+                                value={newPassword} 
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                style={{ width: '100%', padding: '12px 42px 12px 12px', borderRadius: '4px', border: '1px solid #444', background: '#1c1c1c', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                style={{
+                                    position: 'absolute',
+                                    right: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#888',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    padding: 0
+                                }}
+                                title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                            >
+                                {showPassword ? "🙈" : "👁️"}
+                            </button>
+                        </div>
                     </div>
+
+                    {/* KHUNG TIÊU CHUẨN MẬT KHẨU MẠNH */}
+                    <div style={{ background: '#222', borderRadius: '6px', padding: '10px 14px', border: '1px solid #333', fontSize: '12px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#ccc', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span>Tiêu chuẩn mật khẩu an toàn:</span>
+                            <span style={{ 
+                                fontSize: '11px', 
+                                fontWeight: 'bold',
+                                color: passedCount === 5 ? '#52c41a' : passedCount >= 3 ? '#faad14' : '#ff4d4f' 
+                            }}>
+                                {passedCount === 5 ? 'Mật khẩu rất mạnh ✅' : passedCount >= 3 ? 'Độ mạnh: Khá ⚠️' : 'Độ mạnh: Yếu ❌'}
+                            </span>
+                        </div>
+                        
+                        {/* THANH TIẾN ĐỘ ĐỘ MẠNH */}
+                        <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
+                            <div style={{ 
+                                height: '100%', 
+                                width: `${(passedCount / 5) * 100}%`, 
+                                background: passedCount === 5 ? '#52c41a' : passedCount >= 3 ? '#faad14' : '#ff4d4f',
+                                transition: 'all 0.3s ease'
+                            }} />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+                            <div style={{ color: criteria.length ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{criteria.length ? '✓' : '○'}</span> Tối thiểu 8 ký tự
+                            </div>
+                            <div style={{ color: criteria.upper ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{criteria.upper ? '✓' : '○'}</span> 1 chữ hoa (A-Z)
+                            </div>
+                            <div style={{ color: criteria.lower ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{criteria.lower ? '✓' : '○'}</span> 1 chữ thường (a-z)
+                            </div>
+                            <div style={{ color: criteria.number ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{criteria.number ? '✓' : '○'}</span> 1 chữ số (0-9)
+                            </div>
+                            <div style={{ color: criteria.special ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px', gridColumn: 'span 2' }}>
+                                <span>{criteria.special ? '✓' : '○'}</span> 1 ký tự đặc biệt (!@#$%^&*...)
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" style={{ background: '#ee4d2d', color: '#fff', padding: '12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>
                         Xác nhận đổi mật khẩu
                     </button>

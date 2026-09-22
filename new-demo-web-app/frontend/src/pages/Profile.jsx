@@ -197,13 +197,27 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isSavingPassword, setIsSavingPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+
+    const checkPasswordCriteria = (pass) => {
+        return {
+            length: pass.length >= 8,
+            upper: /[A-Z]/.test(pass),
+            lower: /[a-z]/.test(pass),
+            number: /[0-9]/.test(pass),
+            special: /[!@#$%^&*(),.?":{}|<>_\-\[\]\\\/~`+=]/.test(pass)
+        };
+    };
+
+    const passwordCriteria = checkPasswordCriteria(newPassword);
+    const passwordPassedCount = Object.values(passwordCriteria).filter(Boolean).length;
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
 
-        if (newPassword.length < 6) {
-            showToast("Mật khẩu mới phải có ít nhất 6 ký tự!", "warning");
+        if (passwordPassedCount < 5) {
+            showToast("Mật khẩu mới chưa đủ mạnh (cần ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt)!", "warning");
             return;
         }
 
@@ -976,15 +990,80 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                 </div>
 
                                 <div>
-                                    <label style={formLabelStyle}>Mật khẩu mới * (tối thiểu 6 ký tự)</label>
-                                    <input
-                                        type="password"
-                                        required
-                                        placeholder="Nhập mật khẩu mới"
-                                        value={newPassword}
-                                        onChange={e => setNewPassword(e.target.value)}
-                                        style={formInputStyle}
-                                    />
+                                    <label style={formLabelStyle}>Mật khẩu mới * (tối thiểu 8 ký tự, gồm hoa, thường, số, ký tự đặc biệt)</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type={showNewPassword ? "text" : "password"}
+                                            required
+                                            placeholder="Nhập mật khẩu mới"
+                                            value={newPassword}
+                                            onChange={e => setNewPassword(e.target.value)}
+                                            style={{ ...formInputStyle, paddingRight: '40px' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#888',
+                                                cursor: 'pointer',
+                                                fontSize: '16px',
+                                                padding: 0
+                                            }}
+                                            title={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                                        >
+                                            {showNewPassword ? "🙈" : "👁️"}
+                                        </button>
+                                    </div>
+
+                                    {/* KHUNG TIÊU CHUẨN MẬT KHẨU MẠNH */}
+                                    {newPassword.length > 0 && (
+                                        <div style={{ background: '#222', borderRadius: '6px', padding: '10px 14px', border: '1px solid #333', fontSize: '12px', marginTop: '8px' }}>
+                                            <div style={{ fontWeight: 'bold', color: '#ccc', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span>Tiêu chuẩn mật khẩu an toàn:</span>
+                                                <span style={{ 
+                                                    fontSize: '11px', 
+                                                    fontWeight: 'bold',
+                                                    color: passwordPassedCount === 5 ? '#52c41a' : passwordPassedCount >= 3 ? '#faad14' : '#ff4d4f' 
+                                                }}>
+                                                    {passwordPassedCount === 5 ? 'Mật khẩu rất mạnh ✅' : passwordPassedCount >= 3 ? 'Độ mạnh: Khá ⚠️' : 'Độ mạnh: Yếu ❌'}
+                                                </span>
+                                            </div>
+                                            
+                                            {/* THANH TIẾN ĐỘ ĐỘ MẠNH */}
+                                            <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
+                                                <div style={{ 
+                                                    height: '100%', 
+                                                    width: `${(passwordPassedCount / 5) * 100}%`, 
+                                                    background: passwordPassedCount === 5 ? '#52c41a' : passwordPassedCount >= 3 ? '#faad14' : '#ff4d4f',
+                                                    transition: 'all 0.3s ease'
+                                                }} />
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+                                                <div style={{ color: passwordCriteria.length ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>{passwordCriteria.length ? '✓' : '○'}</span> Tối thiểu 8 ký tự
+                                                </div>
+                                                <div style={{ color: passwordCriteria.upper ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>{passwordCriteria.upper ? '✓' : '○'}</span> 1 chữ hoa (A-Z)
+                                                </div>
+                                                <div style={{ color: passwordCriteria.lower ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>{passwordCriteria.lower ? '✓' : '○'}</span> 1 chữ thường (a-z)
+                                                </div>
+                                                <div style={{ color: passwordCriteria.number ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>{passwordCriteria.number ? '✓' : '○'}</span> 1 chữ số (0-9)
+                                                </div>
+                                                <div style={{ color: passwordCriteria.special ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px', gridColumn: 'span 2' }}>
+                                                    <span>{passwordCriteria.special ? '✓' : '○'}</span> 1 ký tự đặc biệt (!@#$%^&*...)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>

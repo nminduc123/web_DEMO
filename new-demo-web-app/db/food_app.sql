@@ -1,5 +1,5 @@
 -- M-BITE FOOD APP FULL DATABASE DUMP
--- Generated on: 2026-09-22T06:33:11.226Z
+-- Generated on: 2026-09-22T15:41:20.309Z
 -- Database: food_app
 
 CREATE DATABASE IF NOT EXISTS `food_app` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -34,15 +34,16 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `phone` (`phone`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table `users`
 INSERT INTO `users` (`id`, `email`, `phone`, `password`, `is_verified`, `role`, `shop_name`, `shop_category`, `is_published`, `is_open`, `avatar`, `shop_description`, `shop_address`, `address`, `full_name`, `is_blocked`, `created_at`, `ban_reason`) VALUES
-(0, 'admin@mbite.com', '0999999999', 'admin123', 1, 'admin', NULL, NULL, 0, 0, 'https://cdn-icons-png.flaticon.com/512/2942/2942813.png', NULL, NULL, NULL, 'Quản Trị Viên Hệ Thống', 0, '2026-09-21 08:54:49', NULL),
+(0, 'admin@mbite.com', '0999999999', '$2b$10$G8NM6MYo18fSzU58dVV4Re5f56obpeAhfJRY3oQdB.v8o8krTSuhS', 1, 'admin', NULL, NULL, 0, 0, 'https://cdn-icons-png.flaticon.com/512/2942/2942813.png', NULL, NULL, NULL, 'Quản Trị Viên Hệ Thống', 0, '2026-09-21 08:54:49', NULL),
 (3, '1@2.com', '0123456789', '2', 1, 'user', NULL, NULL, 0, 0, '/uploads/1790001110511.jpg', NULL, NULL, 'số 17/77 xuân la', 'minh', 0, '2026-09-21 08:54:49', NULL),
 (16, '1@4.com', '0913245678', '4', 1, 'seller', 'bếp ăn đêm', 'Đồ ăn', 1, 1, '/uploads/1789996193140.jpg', '', '123 xuân la', NULL, NULL, 0, '2026-09-21 08:54:49', NULL),
 (17, '1@5.com', '0912365478', '5', 1, 'user', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, '2026-09-21 08:54:49', NULL),
-(18, '1@3.com', '0973167189', '3', 1, 'seller', 'Minh', 'Đồ ăn', 1, 1, '/uploads/1790007270135.jpeg', '', '123 hn', NULL, NULL, 0, '2026-09-21 08:54:49', NULL);
+(18, '1@3.com', '0973167189', '3', 1, 'seller', 'Minh', 'Đồ ăn', 1, 1, '/uploads/1790007270135.jpeg', '', '123 hn', NULL, NULL, 0, '2026-09-21 08:54:49', NULL),
+(20, '1@1.com', '0999999998', '1', 1, 'user', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, '2026-09-22 15:21:31', NULL);
 
 -- --------------------------------------------------------
 -- Table structure for table `menu`
@@ -154,6 +155,30 @@ INSERT INTO `vouchers` (`id`, `code`, `name`, `description`, `discount_type`, `d
 (4, 'SIEUTIEC50K', 'Giảm 50.000đ tiệc lớn', 'Áp dụng cho đơn từ 200.000đ', 'fixed', 50000, 50000, 200000, 100, 1, NULL, 1, '2026-09-21 08:54:49'),
 (5, 'MINHDZ', 'siêu ưu đãi', '', 'percent', 50, 0, 0, 100, 1, NULL, 1, '2026-09-21 09:39:19'),
 (6, 'SIEUDZ', 'ngon', '', 'fixed', 100000, 0, 0, 100, 0, NULL, 1, '2026-09-22 03:15:25');
+
+-- --------------------------------------------------------
+-- Table structure for table `user_vouchers`
+-- --------------------------------------------------------
+
+DROP TABLE IF EXISTS `user_vouchers`;
+CREATE TABLE `user_vouchers` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `voucher_id` int(11) NOT NULL,
+  `is_used` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `used_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_user_voucher` (`user_id`,`voucher_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_voucher_id` (`voucher_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Dumping data for table `user_vouchers`
+INSERT INTO `user_vouchers` (`id`, `user_id`, `voucher_id`, `is_used`, `created_at`, `used_at`) VALUES
+(1, 3, 4, 1, '2026-09-22 03:11:50', '2026-09-22 03:12:03'),
+(3, 3, 3, 0, '2026-09-22 03:14:27', NULL),
+(4, 3, 6, 0, '2026-09-22 03:15:42', NULL);
 
 -- --------------------------------------------------------
 -- Table structure for table `ban_appeals`

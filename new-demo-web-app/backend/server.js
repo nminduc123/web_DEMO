@@ -4,6 +4,7 @@ const mysql = require('mysql2/promise');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,29 @@ const tempUsers = {}; // <-- Thêm biến này để lưu tạm thông tin đăn
 
 // Hàm kiểm tra rỗng an toàn hỗ trợ userId = 0 (tránh lỗi falsy trong JS)
 const isNullOrEmpty = (val) => val === undefined || val === null || val === '';
+
+// Hàm kiểm tra mật khẩu mạnh (Ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt)
+function validateStrongPassword(password) {
+    if (!password || typeof password !== 'string') {
+        return "Vui lòng nhập mật khẩu!";
+    }
+    if (password.length < 8) {
+        return "Mật khẩu phải có tối thiểu 8 ký tự!";
+    }
+    if (!/[A-Z]/.test(password)) {
+        return "Mật khẩu phải chứa ít nhất 1 chữ cái in hoa (A-Z)!";
+    }
+    if (!/[a-z]/.test(password)) {
+        return "Mật khẩu phải chứa ít nhất 1 chữ cái in thường (a-z)!";
+    }
+    if (!/[0-9]/.test(password)) {
+        return "Mật khẩu phải chứa ít nhất 1 chữ số (0-9)!";
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>_\-\[\]\\\/~`+=]/.test(password)) {
+        return "Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#$%^&*...)!";
+    }
+    return null;
+}
 
 // Đảm bảo tài khoản Quản trị viên tối cao luôn tồn tại cố định với id = 0 trong CSDL và bảng user_vouchers tồn tại
 (async () => {
@@ -118,32 +142,74 @@ app.get('/api/foods/:sellerId', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
-    const connection = await mysql.createConnection(dbConfig);
-    const [users] = await connection.execute('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
-    await connection.end();
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        const [users] = await connection.execute('SELECT * FROM users WHERE email = ?', [email]);
 
-    if (users.length > 0) {
-        if (!users[0].is_verified) return res.status(400).json({ success: false, message: "Tài khoản chưa xác thực OTP!" });
+        if (users.length === 0) {
+            await connection.end();
+            return res.status(400).json({ success: false, message: "Sai email hoặc mật khẩu!" });
+        }
+
+        const user = users[0];
+        let isMatch = false;
+
+        // Kiểm tra xem mật khẩu trong DB đã là bcrypt hash hay là plaintext
+        if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'))) {
+            isMatch = await bcrypt.compare(password, user.password);
+        } else {
+            // Hỗ trợ đăng nhập cho các tài khoản seed cũ
+            isMatch = (user.password === password);
+            if (isMatch) {
+                // Tự động nâng cấp hash mật khẩu trong DB ngay khi đăng nhập đúng
+                try {
+                    const newHashed = await bcrypt.hash(password, 10);
+                    await connection.execute('UPDATE users SET password = ? WHERE id = ?', [newHashed, user.id]);
+                } catch (e) {
+                    console.error("Lỗi tự động nâng cấp hash:", e);
+                }
+            }
+        }
+
+        await connection.end();
+
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: "Sai email hoặc mật khẩu!" });
+        }
+
+        if (!user.is_verified) {
+            return res.status(400).json({ success: false, message: "Tài khoản chưa xác thực OTP!" });
+        }
+
         res.json({ 
             success: true, 
             user: { 
-                id: users[0].id, email: users[0].email, role: users[0].role, phone: users[0].phone,
-                full_name: users[0].full_name || '',
-                address: users[0].address || '',
-                shop_name: users[0].shop_name, shop_category: users[0].shop_category,
-                is_published: !!users[0].is_published,
-                is_open: !!users[0].is_open,
-                avatar: users[0].avatar,
-                is_blocked: !!users[0].is_blocked,
-                ban_reason: users[0].ban_reason || ''
+                id: user.id, email: user.email, role: user.role, phone: user.phone,
+                full_name: user.full_name || '',
+                address: user.address || '',
+                shop_name: user.shop_name, shop_category: user.shop_category,
+                is_published: !!user.is_published,
+                is_open: !!user.is_open,
+                avatar: user.avatar,
+                is_blocked: !!user.is_blocked,
+                ban_reason: user.ban_reason || ''
             } 
         });
-    } else res.status(400).json({ success: false, message: "Sai email hoặc mật khẩu!" });
+    } catch (error) {
+        console.error("Lỗi đăng nhập:", error);
+        res.status(500).json({ success: false, message: "Lỗi kết nối cơ sở dữ liệu!" });
+    }
 });
 
 app.post('/api/register', async (req, res) => {
     const { email, phone, password, verifyMethod, role, shopName, shopCategory, shopDescription, shopAddress } = req.body;
     const userRole = role === 'seller' ? 'seller' : 'user'; 
+
+    // Kiểm tra độ mạnh mật khẩu (1 hoa, 1 thường, 1 số, 1 ký tự đặc biệt, >= 8 ký tự)
+    const passwordError = validateStrongPassword(password);
+    if (passwordError) {
+        return res.status(400).json({ success: false, message: passwordError });
+    }
 
     try {
         const connection = await mysql.createConnection(dbConfig);
@@ -195,11 +261,14 @@ app.post('/api/verify-otp', async (req, res) => {
             const u = pendingUser.data;
             const connection = await mysql.createConnection(dbConfig);
             
+            // Hash mật khẩu với bcrypt trước khi lưu vào Database
+            const hashedPassword = await bcrypt.hash(u.password, 10);
+
             // LƯU CHÍNH THỨC VÀO DATABASE VÀ ĐÁNH DẤU LÀ ĐÃ XÁC THỰC (is_verified = TRUE)
             await connection.execute(
                 'INSERT INTO users (email, phone, password, role, shop_name, shop_category, shop_description, shop_address, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)', 
                 [
-                    u.email, u.phone, u.password, u.userRole, 
+                    u.email, u.phone, hashedPassword, u.userRole, 
                     u.shopName || null, u.shopCategory || null, 
                     u.shopDescription || null, u.shopAddress || null
                 ]
@@ -876,6 +945,13 @@ app.post('/api/forgot-password/verify-otp', (req, res) => {
 // 3. Đổi mật khẩu mới
 app.post('/api/forgot-password/reset', async (req, res) => {
     const { type, value, newPassword } = req.body;
+
+    // Kiểm tra độ mạnh mật khẩu mới
+    const passwordError = validateStrongPassword(newPassword);
+    if (passwordError) {
+        return res.status(400).json({ success: false, message: passwordError });
+    }
+
     try {
         const connection = await mysql.createConnection(dbConfig);
         let targetValue = value;
@@ -884,11 +960,12 @@ app.post('/api/forgot-password/reset', async (req, res) => {
             targetValue = '0' + rawDigits;
         }
 
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
         const query = type === 'email' 
             ? "UPDATE users SET password = ? WHERE email = ?" 
             : "UPDATE users SET password = ? WHERE phone = ?";
             
-        await connection.execute(query, [newPassword, targetValue]);
+        await connection.execute(query, [hashedPassword, targetValue]);
         await connection.end();
 
         delete otpStorage[targetValue];
@@ -953,12 +1030,29 @@ app.post('/api/user/change-password', async (req, res) => {
             return res.status(404).json({ success: false, message: "Tài khoản không tồn tại!" });
         }
 
-        if (rows[0].password !== currentPassword) {
+        const user = rows[0];
+        let isCurrentMatch = false;
+
+        if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'))) {
+            isCurrentMatch = await bcrypt.compare(currentPassword, user.password);
+        } else {
+            isCurrentMatch = (user.password === currentPassword);
+        }
+
+        if (!isCurrentMatch) {
             await connection.end();
             return res.status(400).json({ success: false, message: "Mật khẩu hiện tại không chính xác!" });
         }
 
-        await connection.execute('UPDATE users SET password = ? WHERE id = ?', [newPassword, userId]);
+        // Kiểm tra độ mạnh mật khẩu mới
+        const passwordError = validateStrongPassword(newPassword);
+        if (passwordError) {
+            await connection.end();
+            return res.status(400).json({ success: false, message: passwordError });
+        }
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        await connection.execute('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, userId]);
         await connection.end();
 
         res.json({ success: true, message: "Đổi mật khẩu thành công!" });
