@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MailIcon, PhoneIcon } from '../components/Icons';
+import { MailIcon, PhoneIcon, EyeIcon, EyeOffIcon } from '../components/Icons';
 
 export default function ForgotPassword() {
     const [step, setStep] = useState(1); // 1: Nhập thông tin, 2: Nhập OTP, 3: Đổi mật khẩu mới
@@ -250,56 +250,54 @@ export default function ForgotPassword() {
                                     border: 'none',
                                     color: '#888',
                                     cursor: 'pointer',
-                                    fontSize: '16px',
-                                    padding: 0
+                                    padding: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'color 0.2s'
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
                                 title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                             >
-                                {showPassword ? "🙈" : "👁️"}
+                                {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
                             </button>
                         </div>
-                    </div>
 
-                    {/* KHUNG TIÊU CHUẨN MẬT KHẨU MẠNH */}
-                    <div style={{ background: '#222', borderRadius: '6px', padding: '10px 14px', border: '1px solid #333', fontSize: '12px' }}>
-                        <div style={{ fontWeight: 'bold', color: '#ccc', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>Tiêu chuẩn mật khẩu an toàn:</span>
-                            <span style={{ 
-                                fontSize: '11px', 
-                                fontWeight: 'bold',
-                                color: passedCount === 5 ? '#52c41a' : passedCount >= 3 ? '#faad14' : '#ff4d4f' 
-                            }}>
-                                {passedCount === 5 ? 'Mật khẩu rất mạnh ✅' : passedCount >= 3 ? 'Độ mạnh: Khá ⚠️' : 'Độ mạnh: Yếu ❌'}
-                            </span>
-                        </div>
-                        
-                        {/* THANH TIẾN ĐỘ ĐỘ MẠNH */}
-                        <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
-                            <div style={{ 
-                                height: '100%', 
-                                width: `${(passedCount / 5) * 100}%`, 
-                                background: passedCount === 5 ? '#52c41a' : passedCount >= 3 ? '#faad14' : '#ff4d4f',
-                                transition: 'all 0.3s ease'
-                            }} />
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
-                            <div style={{ color: criteria.length ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{criteria.length ? '✓' : '○'}</span> Tối thiểu 8 ký tự
+                        {/* THANH ĐỘ MẠNH TINH TẾ (CHỈ HIỆN KHI BẮT ĐẦU NHẬP) */}
+                        {newPassword.length > 0 && (
+                            <div style={{ marginTop: '8px', padding: '0 2px' }}>
+                                <div style={{ display: 'flex', gap: '4px', height: '3px', marginBottom: '6px' }}>
+                                    {[1, 2, 3, 4, 5].map((lvl) => {
+                                        const isActive = passedCount >= lvl;
+                                        const activeColor = passedCount === 5 ? '#52c41a' : passedCount >= 3 ? '#faad14' : '#ff4d4f';
+                                        return (
+                                            <div 
+                                                key={lvl} 
+                                                style={{
+                                                    flex: 1,
+                                                    height: '100%',
+                                                    borderRadius: '2px',
+                                                    background: isActive ? activeColor : '#383838',
+                                                    transition: 'background 0.3s ease'
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                                    <span style={{ 
+                                        fontWeight: '600',
+                                        color: passedCount === 5 ? '#52c41a' : passedCount >= 3 ? '#faad14' : '#ff4d4f'
+                                    }}>
+                                        {passedCount === 5 ? '✓ Mật khẩu an toàn' : passedCount >= 3 ? 'Độ mạnh: Khá' : 'Độ mạnh: Yếu'}
+                                    </span>
+                                    <span style={{ color: '#888', fontSize: '11px' }}>
+                                        {passedCount === 5 ? 'Đã đạt tiêu chuẩn bảo mật' : 'Gồm chữ hoa, thường, số, ký tự đặc biệt'}
+                                    </span>
+                                </div>
                             </div>
-                            <div style={{ color: criteria.upper ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{criteria.upper ? '✓' : '○'}</span> 1 chữ hoa (A-Z)
-                            </div>
-                            <div style={{ color: criteria.lower ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{criteria.lower ? '✓' : '○'}</span> 1 chữ thường (a-z)
-                            </div>
-                            <div style={{ color: criteria.number ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{criteria.number ? '✓' : '○'}</span> 1 chữ số (0-9)
-                            </div>
-                            <div style={{ color: criteria.special ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px', gridColumn: 'span 2' }}>
-                                <span>{criteria.special ? '✓' : '○'}</span> 1 ký tự đặc biệt (!@#$%^&*...)
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     <button type="submit" style={{ background: '#ee4d2d', color: '#fff', padding: '12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>

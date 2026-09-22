@@ -5,7 +5,7 @@ import {
     UserIcon, PackageIcon, HeartIcon, KeyIcon, SettingsIcon, 
     PhoneIcon, MailIcon, MapPinIcon, CameraIcon, CheckIcon, 
     SaveIcon, XIcon, ClockIcon, HeartOffIcon, TagIcon, LockIcon,
-    ArrowRightIcon, StatusDot, TicketIcon
+    ArrowRightIcon, StatusDot, TicketIcon, EyeIcon, EyeOffIcon
 } from '../components/Icons';
 
 export default function Profile({ currentUser, setCurrentUser, defaultTab = 'info' }) {
@@ -1012,55 +1012,51 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                 border: 'none',
                                                 color: '#888',
                                                 cursor: 'pointer',
-                                                fontSize: '16px',
-                                                padding: 0
+                                                padding: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                transition: 'color 0.2s'
                                             }}
+                                            onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
+                                            onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
                                             title={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                                         >
-                                            {showNewPassword ? "🙈" : "👁️"}
+                                            {showNewPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
                                         </button>
                                     </div>
 
-                                    {/* KHUNG TIÊU CHUẨN MẬT KHẨU MẠNH */}
+                                    {/* THANH ĐỘ MẠNH TINH TẾ (CHỈ HIỆN KHI BẮT ĐẦU NHẬP) */}
                                     {newPassword.length > 0 && (
-                                        <div style={{ background: '#222', borderRadius: '6px', padding: '10px 14px', border: '1px solid #333', fontSize: '12px', marginTop: '8px' }}>
-                                            <div style={{ fontWeight: 'bold', color: '#ccc', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                <span>Tiêu chuẩn mật khẩu an toàn:</span>
+                                        <div style={{ marginTop: '8px', padding: '0 2px' }}>
+                                            <div style={{ display: 'flex', gap: '4px', height: '3px', marginBottom: '6px' }}>
+                                                {[1, 2, 3, 4, 5].map((lvl) => {
+                                                    const isActive = passwordPassedCount >= lvl;
+                                                    const activeColor = passwordPassedCount === 5 ? '#52c41a' : passwordPassedCount >= 3 ? '#faad14' : '#ff4d4f';
+                                                    return (
+                                                        <div 
+                                                            key={lvl} 
+                                                            style={{
+                                                                flex: 1,
+                                                                height: '100%',
+                                                                borderRadius: '2px',
+                                                                background: isActive ? activeColor : '#383838',
+                                                                transition: 'background 0.3s ease'
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
                                                 <span style={{ 
-                                                    fontSize: '11px', 
-                                                    fontWeight: 'bold',
-                                                    color: passwordPassedCount === 5 ? '#52c41a' : passwordPassedCount >= 3 ? '#faad14' : '#ff4d4f' 
+                                                    fontWeight: '600',
+                                                    color: passwordPassedCount === 5 ? '#52c41a' : passwordPassedCount >= 3 ? '#faad14' : '#ff4d4f'
                                                 }}>
-                                                    {passwordPassedCount === 5 ? 'Mật khẩu rất mạnh ✅' : passwordPassedCount >= 3 ? 'Độ mạnh: Khá ⚠️' : 'Độ mạnh: Yếu ❌'}
+                                                    {passwordPassedCount === 5 ? '✓ Mật khẩu an toàn' : passwordPassedCount >= 3 ? 'Độ mạnh: Khá' : 'Độ mạnh: Yếu'}
                                                 </span>
-                                            </div>
-                                            
-                                            {/* THANH TIẾN ĐỘ ĐỘ MẠNH */}
-                                            <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
-                                                <div style={{ 
-                                                    height: '100%', 
-                                                    width: `${(passwordPassedCount / 5) * 100}%`, 
-                                                    background: passwordPassedCount === 5 ? '#52c41a' : passwordPassedCount >= 3 ? '#faad14' : '#ff4d4f',
-                                                    transition: 'all 0.3s ease'
-                                                }} />
-                                            </div>
-
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
-                                                <div style={{ color: passwordCriteria.length ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span>{passwordCriteria.length ? '✓' : '○'}</span> Tối thiểu 8 ký tự
-                                                </div>
-                                                <div style={{ color: passwordCriteria.upper ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span>{passwordCriteria.upper ? '✓' : '○'}</span> 1 chữ hoa (A-Z)
-                                                </div>
-                                                <div style={{ color: passwordCriteria.lower ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span>{passwordCriteria.lower ? '✓' : '○'}</span> 1 chữ thường (a-z)
-                                                </div>
-                                                <div style={{ color: passwordCriteria.number ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span>{passwordCriteria.number ? '✓' : '○'}</span> 1 chữ số (0-9)
-                                                </div>
-                                                <div style={{ color: passwordCriteria.special ? '#52c41a' : '#777', display: 'flex', alignItems: 'center', gap: '6px', gridColumn: 'span 2' }}>
-                                                    <span>{passwordCriteria.special ? '✓' : '○'}</span> 1 ký tự đặc biệt (!@#$%^&*...)
-                                                </div>
+                                                <span style={{ color: '#888', fontSize: '11px' }}>
+                                                    {passwordPassedCount === 5 ? 'Đã đạt tiêu chuẩn bảo mật' : 'Gồm chữ hoa, thường, số, ký tự đặc biệt'}
+                                                </span>
                                             </div>
                                         </div>
                                     )}

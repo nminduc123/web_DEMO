@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { EyeIcon, EyeOffIcon } from '../components/Icons';
 
 export default function Login({ setCurrentUser }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
@@ -100,11 +102,40 @@ export default function Login({ setCurrentUser }) {
 
                 <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: '#ccc' }}>Mật khẩu</label>
-                    <input 
-                        type="password" placeholder="Nhập mật khẩu" required
-                        value={password} onChange={(e) => setPassword(e.target.value)}
-                        style={{ width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid #444', background: '#1c1c1c', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                        <input 
+                            type={showPassword ? "text" : "password"} 
+                            placeholder="Nhập mật khẩu" 
+                            required
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)}
+                            style={{ width: '100%', padding: '12px 42px 12px 12px', borderRadius: '4px', border: '1px solid #444', background: '#1c1c1c', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{
+                                position: 'absolute',
+                                right: '12px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'none',
+                                border: 'none',
+                                color: '#888',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
+                            title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                        >
+                            {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
