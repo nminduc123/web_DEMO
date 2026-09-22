@@ -2,6 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { SHOP_CATEGORIES } from '../constants/categories';
+import { 
+    StoreIcon, TrendingUpIcon, UtensilsIcon, PackageIcon, SettingsIcon,
+    CheckCircleIcon, XCircleIcon, RevenueIcon, FileTextIcon, CreditCardIcon,
+    BanknoteIcon, EditIcon, PlusIcon, TrashIcon, CheckIcon, XIcon,
+    TicketIcon, AlertTriangleIcon, SaveIcon, StatusDot, SearchIcon,
+    EyeIcon, EyeOffIcon, ShieldAlertIcon, ClockIcon, TruckIcon
+} from '../components/Icons';
 
 export default function Seller({ currentUser, setCurrentUser }) {
     const navigate = useNavigate();
@@ -448,91 +455,175 @@ export default function Seller({ currentUser, setCurrentUser }) {
     }
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '30px 20px', fontFamily: 'Arial, sans-serif', color: '#fff' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '30px 20px', fontFamily: 'Arial, sans-serif', color: '#fff' }}>
             
-            {/* THANH HEADER ĐIỀU HƯỚNG TỔNG THỂ */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '2px solid #333', paddingBottom: '18px', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <img 
-                        src={currentUser.avatar || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836'} 
-                        alt="Avatar Shop" 
-                        style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #ee4d2d' }} 
-                    />
-                    <div>
-                        <h2 style={{ margin: 0, fontSize: '22px' }}>
-                            🏪 Quản lý: <span style={{ color: '#ee4d2d' }}>{currentUser.shop_name}</span>
-                        </h2>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '13px', color: '#aaa' }}>
-                            <span style={{ background: '#333', padding: '2px 8px', borderRadius: '12px' }}>
+            {/* TIÊU ĐỀ TRANG QUẢN TRỊ SELLER */}
+            <div style={{ marginBottom: '24px' }}>
+                <h1 style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <StoreIcon size={24} color="#ee4d2d" />
+                    Kênh Quản Lý Nhà Hàng
+                </h1>
+                <p style={{ margin: 0, fontSize: '13px', color: '#888' }}>
+                    Hệ thống quản lý thực đơn, xử lý đơn hàng, theo dõi doanh thu và cấu hình thông tin quán
+                </p>
+            </div>
+
+            {/* BỐ CỤC 2 CỘT: CỘT TRÁI (SIDEBAR) & CỘT PHẢI (MAIN CONTENT) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '270px 1fr', gap: '24px', alignItems: 'start' }}>
+                
+                {/* CỘT MENU BÊN TRÁI (LEFT SIDEBAR) */}
+                <aside style={{
+                    background: '#1c1f26',
+                    borderRadius: '12px',
+                    border: '1px solid #2d333f',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px',
+                    position: 'sticky',
+                    top: '110px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.25)'
+                }}>
+                    {/* Thẻ thông tin nhanh về quán */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '16px', borderBottom: '1px solid #2d333f' }}>
+                        <div style={{ position: 'relative', marginBottom: '12px' }}>
+                            <img 
+                                src={currentUser.avatar || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836'} 
+                                alt="Avatar Shop" 
+                                style={{ 
+                                    width: '68px', 
+                                    height: '68px', 
+                                    borderRadius: '50%', 
+                                    objectFit: 'cover', 
+                                    border: `3px solid ${currentUser.is_open ? '#28a745' : '#ff4d4f'}`,
+                                    boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+                                }} 
+                            />
+                            <span 
+                                title={currentUser.is_open ? 'Quán đang mở cửa' : 'Quán đang tạm đóng'}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '2px',
+                                    right: '2px',
+                                    width: '14px',
+                                    height: '14px',
+                                    borderRadius: '50%',
+                                    background: currentUser.is_open ? '#28a745' : '#ff4d4f',
+                                    border: '2px solid #1c1f26'
+                                }}
+                            />
+                        </div>
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 'bold', color: '#fff', maxWidth: '230px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentUser.shop_name}
+                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ background: 'rgba(238, 77, 45, 0.15)', color: '#ee4d2d', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
                                 {currentUser.shop_category || 'Đồ ăn'}
                             </span>
-                            <span>•</span>
-                            <span style={{ color: currentUser.is_open ? '#28a745' : '#ff4d4f' }}>
-                                {currentUser.is_open ? '● Mở cửa' : '● Đóng cửa'}
-                            </span>
-                            <span>•</span>
-                            <span style={{ color: currentUser.is_published ? '#28a745' : '#888' }}>
-                                {currentUser.is_published ? 'Hiển thị trên sàn' : 'Đã ẩn sàn'}
+                            <span style={{ fontSize: '11px', color: currentUser.is_open ? '#52c41a' : '#ff4d4f', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <StatusDot color={currentUser.is_open ? '#52c41a' : '#ff4d4f'} size={6} />
+                                {currentUser.is_open ? 'Đang mở cửa' : 'Tạm đóng cửa'}
                             </span>
                         </div>
                     </div>
-                </div>
 
-                {/* 4 TAB ĐIỀU HƯỚNG NGHIỆP VỤ */}
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <button 
-                        onClick={() => setActiveSellerTab('revenue')}
-                        style={getTabButtonStyle(activeSellerTab === 'revenue')}
-                    >
-                        📊 Doanh Thu & Thống Kê
-                    </button>
+                    {/* Danh sách mục menu dọc */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.6px', padding: '0 8px 4px' }}>
+                            Danh mục quản lý
+                        </span>
 
-                    <button 
-                        onClick={() => setActiveSellerTab('menu')}
-                        style={getTabButtonStyle(activeSellerTab === 'menu')}
-                    >
-                        📋 Thực Đơn ({foods.length})
-                    </button>
-                    
-                    <button 
-                        onClick={() => setActiveSellerTab('orders')}
-                        style={{ ...getTabButtonStyle(activeSellerTab === 'orders'), position: 'relative' }}
-                    >
-                        📦 Đơn Hàng ({sellerOrders.length})
-                        {pendingOrdersCount > 0 && (
-                            <span 
-                                title={`${pendingOrdersCount} đơn chờ xác nhận`}
-                                style={{ 
-                                    position: 'absolute', 
-                                    top: '-6px', 
-                                    right: '-6px', 
-                                    background: '#ff4d4f', 
-                                    color: '#fff',
-                                    fontSize: '11px',
-                                    fontWeight: 'bold',
-                                    padding: '2px 7px',
-                                    borderRadius: '10px',
-                                    boxShadow: '0 0 8px #ff4d4f' 
-                                }}
-                            >
-                                {pendingOrdersCount}
+                        <button 
+                            type="button"
+                            onClick={() => setActiveSellerTab('revenue')}
+                            style={sidebarNavStyle(activeSellerTab === 'revenue')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <TrendingUpIcon size={16} color={activeSellerTab === 'revenue' ? '#ee4d2d' : '#aaa'} />
+                                <span>Doanh Thu & KPI</span>
+                            </div>
+                        </button>
+
+                        <button 
+                            type="button"
+                            onClick={() => setActiveSellerTab('menu')}
+                            style={sidebarNavStyle(activeSellerTab === 'menu')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <UtensilsIcon size={16} color={activeSellerTab === 'menu' ? '#ee4d2d' : '#aaa'} />
+                                <span>Thực Đơn Món</span>
+                            </div>
+                            <span style={sidebarBadgeStyle(activeSellerTab === 'menu')}>
+                                {foods.length}
                             </span>
-                        )}
-                    </button>
+                        </button>
 
-                    <button 
-                        onClick={() => setActiveSellerTab('settings')}
-                        style={getTabButtonStyle(activeSellerTab === 'settings')}
-                    >
-                        ⚙️ Cài Đặt Quán
-                    </button>
-                </div>
-            </div>
+                        <button 
+                            type="button"
+                            onClick={() => setActiveSellerTab('orders')}
+                            style={sidebarNavStyle(activeSellerTab === 'orders')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <PackageIcon size={16} color={activeSellerTab === 'orders' ? '#ee4d2d' : '#aaa'} />
+                                <span>Đơn Hàng</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {pendingOrdersCount > 0 && (
+                                    <span 
+                                        title={`${pendingOrdersCount} đơn chờ xác nhận`}
+                                        style={{ 
+                                            background: '#ff4d4f', 
+                                            color: '#fff',
+                                            fontSize: '10px',
+                                            fontWeight: 'bold',
+                                            padding: '1px 6px',
+                                            borderRadius: '10px',
+                                            boxShadow: '0 2px 6px rgba(255, 77, 79, 0.4)'
+                                        }}
+                                    >
+                                        {pendingOrdersCount} mới
+                                    </span>
+                                )}
+                                <span style={sidebarBadgeStyle(activeSellerTab === 'orders')}>
+                                    {sellerOrders.length}
+                                </span>
+                            </div>
+                        </button>
 
-            {/* ========================================================= */}
-            {/* TAB 1: DOANH THU & THỐNG KÊ KINH DOANH */}
-            {/* ========================================================= */}
-            {activeSellerTab === 'revenue' && (
+                        <button 
+                            type="button"
+                            onClick={() => setActiveSellerTab('settings')}
+                            style={sidebarNavStyle(activeSellerTab === 'settings')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <SettingsIcon size={16} color={activeSellerTab === 'settings' ? '#ee4d2d' : '#aaa'} />
+                                <span>Hồ Sơ & Cài Đặt</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    {/* Chân sidebar */}
+                    <div style={{ paddingTop: '14px', borderTop: '1px solid #2d333f', textAlign: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#666' }}>
+                            M-Bite Merchant v2.0
+                        </span>
+                    </div>
+                </aside>
+
+                {/* CỘT NỘI DUNG CHÍNH BÊN PHẢI (MAIN CONTENT) */}
+                <div style={{
+                    background: '#1c1f26',
+                    borderRadius: '12px',
+                    border: '1px solid #2d333f',
+                    padding: '24px',
+                    minHeight: '600px',
+                    minWidth: 0,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.25)'
+                }}>
+                    {/* ========================================================= */}
+                    {/* TAB 1: DOANH THU & THỐNG KÊ KINH DOANH */}
+                    {/* ========================================================= */}
+                    {activeSellerTab === 'revenue' && (
                 <div>
                     {/* BỘ LỌC THỜI GIAN DOANH THU */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
@@ -577,7 +668,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         <div style={kpiCardStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> DOANH THU THỰC TẾ</span>
-                                <span style={{ fontSize: '20px' }}>📈</span>
+                                <TrendingUpIcon size={20} color="#52c41a" />
                             </div>
                             <h3 style={{ margin: 0, fontSize: '26px', color: '#52c41a' }}>
                                 {totalRevenue.toLocaleString('vi-VN')}đ
@@ -591,7 +682,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         <div style={kpiCardStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> ĐƠN HOÀN THÀNH</span>
-                                <span style={{ fontSize: '20px' }}>✅</span>
+                                <CheckCircleIcon size={20} color="#1890ff" />
                             </div>
                             <h3 style={{ margin: 0, fontSize: '26px', color: '#1890ff' }}>
                                 {completedOrdersCount} <span style={{ fontSize: '15px', color: '#888' }}>/ {filteredOrders.length} đơn</span>
@@ -605,7 +696,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         <div style={kpiCardStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> ĐƠN CẦN XỬ LÝ</span>
-                                <span style={{ fontSize: '20px' }}>🔴</span>
+                                <AlertTriangleIcon size={20} color="#ff4d4f" />
                             </div>
                             <h3 style={{ margin: 0, fontSize: '26px', color: pendingOrdersCount > 0 ? '#ff4d4f' : '#fff' }}>
                                 {pendingOrdersCount} <span style={{ fontSize: '15px', color: '#888' }}>đơn chờ duyệt</span>
@@ -619,7 +710,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         <div style={kpiCardStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}> THỰC ĐƠN QUÁN</span>
-                                <span style={{ fontSize: '20px' }}>📋</span>
+                                <UtensilsIcon size={20} color="#fa8c16" />
                             </div>
                             <h3 style={{ margin: 0, fontSize: '26px', color: '#fa8c16' }}>
                                 {foods.length} <span style={{ fontSize: '15px', color: '#888' }}>món ăn</span>
@@ -636,12 +727,12 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         {/* CỘT TRÁI: TOP MÓN BÁN CHẠY NHẤT */}
                         <div style={{ background: '#222', borderRadius: '8px', padding: '22px', border: '1px solid #333' }}>
                             <h3 style={{ margin: '0 0 15px 0', fontSize: '17px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                🏆 Top Món Ăn Bán Chạy Nhất
+                                <TrendingUpIcon size={18} color="#faad14" /> Top Món Ăn Bán Chạy Nhất
                             </h3>
                             
                             {bestSellers.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '40px 10px', color: '#888', fontSize: '13px' }}>
-                                    <p style={{ fontSize: '32px', margin: '0 0 8px 0' }}>🍽️</p>
+                                    <div style={{ marginBottom: '8px', color: '#555', display: 'flex', justifyContent: 'center' }}><UtensilsIcon size={32} /></div>
                                     Chưa có dữ liệu bán hàng trong khoảng thời gian này.
                                 </div>
                             ) : (
@@ -690,12 +781,12 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         {/* CỘT PHẢI: ĐƠN HÀNG HOÀN THÀNH GẦN NHẤT */}
                         <div style={{ background: '#222', borderRadius: '8px', padding: '22px', border: '1px solid #333' }}>
                             <h3 style={{ margin: '0 0 15px 0', fontSize: '17px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                💵 Dòng Tiền Đơn Hàng Gần Đây
+                                <RevenueIcon size={18} color="#52c41a" /> Dòng Tiền Đơn Hàng Gần Đây
                             </h3>
 
                             {completedOrdersCount === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '40px 10px', color: '#888', fontSize: '13px' }}>
-                                    <p style={{ fontSize: '32px', margin: '0 0 8px 0' }}>🧾</p>
+                                    <div style={{ marginBottom: '8px', color: '#555', display: 'flex', justifyContent: 'center' }}><FileTextIcon size={32} /></div>
                                     Chưa có đơn hàng hoàn thành nào trong khoảng thời gian này.
                                 </div>
                             ) : (
@@ -716,8 +807,16 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                             <div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <strong style={{ fontSize: '14px', color: '#fff' }}>Đơn #{order.id}</strong>
-                                                    <span style={{ fontSize: '11px', color: '#888' }}>
-                                                        {order.payment_method === 'CK' ? '💳 VietQR' : '💵 Tiền mặt'}
+                                                    <span style={{ fontSize: '11px', color: '#888', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        {order.payment_method === 'CK' ? (
+                                                            <>
+                                                                <CreditCardIcon size={12} /> VietQR
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <BanknoteIcon size={12} /> Tiền mặt
+                                                            </>
+                                                        )}
                                                     </span>
                                                 </div>
                                                 <span style={{ fontSize: '11px', color: '#666' }}>
@@ -754,8 +853,8 @@ export default function Seller({ currentUser, setCurrentUser }) {
                             boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
                         }}
                     >
-                        <h3 style={{ margin: '0 0 15px 0', color: editFoodId ? '#007bff' : '#fff', fontSize: '17px' }}>
-                            {editFoodId ? '✏️ Cập nhật thông tin món ăn' : '➕ Thêm món ăn mới vào thực đơn quán'}
+                        <h3 style={{ margin: '0 0 15px 0', color: editFoodId ? '#007bff' : '#fff', fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {editFoodId ? <><EditIcon size={18} /> Cập nhật thông tin món ăn</> : <><PlusIcon size={18} /> Thêm món ăn mới vào thực đơn quán</>}
                         </h3>
                         
                         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -820,7 +919,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, maxWidth: '350px' }}>
                             <input
                                 type="text"
-                                placeholder="🔍 Tìm kiếm món ăn trong quán..."
+                                placeholder="Tìm kiếm món ăn trong quán..."
                                 value={menuSearch}
                                 onChange={e => setMenuSearch(e.target.value)}
                                 style={{
@@ -923,25 +1022,30 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                     fontWeight: 'bold', 
                                                     fontSize: '13px',
                                                     background: food.is_sold_out ? '#28a745' : '#fa8c16', 
-                                                    color: '#fff' 
+                                                    color: '#fff',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px'
                                                 }}
                                             >
-                                                {food.is_sold_out ? '🟢 Mở bán lại' : '🔴 Báo hết món'}
+                                                <StatusDot color="#fff" size={8} />
+                                                {food.is_sold_out ? 'Mở bán lại' : 'Báo hết món'}
                                             </button>
 
                                             <div style={{ display: 'flex', gap: '8px' }}>
                                                 <button 
                                                     onClick={() => handleEditClick(food)}
-                                                    style={{ flex: 1, padding: '8px', background: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                                                    style={{ flex: 1, padding: '8px', background: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                                                 >
-                                                    ✏️ Sửa
+                                                    <EditIcon size={14} /> Sửa
                                                 </button>
                                                 
                                                 <button 
                                                     onClick={() => handleDeleteFood(food.id, food.name)}
-                                                    style={{ flex: 1, padding: '8px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                                                    style={{ flex: 1, padding: '8px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                                                 >
-                                                    🗑️ Xóa
+                                                    <TrashIcon size={14} /> Xóa
                                                 </button>
                                             </div>
                                         </div>
@@ -967,11 +1071,11 @@ export default function Seller({ currentUser, setCurrentUser }) {
                         {/* BỘ LỌC TRẠNG THÁI ĐƠN HÀNG */}
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             {[
-                                { key: 'all', label: `Tất cả (${sellerOrders.length})` },
-                                { key: 'pending', label: `🔴 Chờ xác nhận (${sellerOrders.filter(o => o.status === 'pending').length})` },
-                                { key: 'accepted', label: `🔵 Đang chuẩn bị (${sellerOrders.filter(o => o.status === 'accepted').length})` },
-                                { key: 'completed', label: `🟢 Đã hoàn thành (${sellerOrders.filter(o => o.status === 'completed').length})` },
-                                { key: 'cancelled', label: `❌ Đã từ chối (${sellerOrders.filter(o => o.status === 'cancelled').length})` }
+                                { key: 'all', label: 'Tất cả', count: sellerOrders.length },
+                                { key: 'pending', label: 'Chờ xác nhận', count: sellerOrders.filter(o => o.status === 'pending').length, dotColor: '#ff4d4f' },
+                                { key: 'accepted', label: 'Đang chuẩn bị', count: sellerOrders.filter(o => o.status === 'accepted').length, dotColor: '#1890ff' },
+                                { key: 'completed', label: 'Đã hoàn thành', count: sellerOrders.filter(o => o.status === 'completed').length, dotColor: '#52c41a' },
+                                { key: 'cancelled', label: 'Đã từ chối', count: sellerOrders.filter(o => o.status === 'cancelled').length, dotColor: '#888' }
                             ].map(item => (
                                 <button
                                     key={item.key}
@@ -985,10 +1089,13 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                         fontWeight: 'bold',
                                         background: orderFilter === item.key ? '#ee4d2d' : '#222',
                                         color: orderFilter === item.key ? '#fff' : '#aaa',
-                                        transition: 'all 0.2s'
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
                                     }}
                                 >
-                                    {item.label}
+                                    {item.dotColor && <StatusDot color={item.dotColor} size={7} />}
+                                    {item.label} ({item.count})
                                 </button>
                             ))}
                         </div>
@@ -1036,9 +1143,15 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                 borderRadius: '20px',
                                                 background: order.status === 'pending' ? '#ff4d4f22' : (order.status === 'accepted' ? '#007bff22' : (order.status === 'cancelled' ? '#ff4d4f22' : '#28a74522')),
                                                 color: order.status === 'pending' ? '#ff4d4f' : (order.status === 'accepted' ? '#1890ff' : (order.status === 'cancelled' ? '#ff4d4f' : '#52c41a')),
-                                                border: `1px solid ${order.status === 'pending' ? '#ff4d4f' : (order.status === 'accepted' ? '#1890ff' : (order.status === 'cancelled' ? '#ff4d4f' : '#52c41a'))}`
+                                                border: `1px solid ${order.status === 'pending' ? '#ff4d4f' : (order.status === 'accepted' ? '#1890ff' : (order.status === 'cancelled' ? '#ff4d4f' : '#52c41a'))}`,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
                                             }}>
-                                                {order.status === 'pending' ? '🔴 Chờ xác nhận' : (order.status === 'accepted' ? '🔵 Đang chuẩn bị' : (order.status === 'cancelled' ? '❌ Đã từ chối' : '🟢 Đã hoàn thành'))}
+                                                {order.status === 'pending' && <><StatusDot color="#ff4d4f" size={7} />Chờ xác nhận</>}
+                                                {order.status === 'accepted' && <><StatusDot color="#1890ff" size={7} />Đang chuẩn bị</>}
+                                                {order.status === 'cancelled' && <><StatusDot color="#ff4d4f" size={7} />Đã từ chối</>}
+                                                {order.status === 'completed' && <><StatusDot color="#52c41a" size={7} />Đã hoàn thành</>}
                                             </span>
                                         </div>
 
@@ -1066,7 +1179,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                     gap: '10px',
                                                     alignItems: 'flex-start'
                                                 }}>
-                                                    <span style={{ fontSize: '16px' }}>📝</span>
+                                                    <FileTextIcon size={16} color="#ffa940" />
                                                     <div>
                                                         <strong style={{ color: '#ffa940' }}>Ghi chú của khách cho quán:</strong>
                                                         <div style={{ color: '#fff', marginTop: '2px', fontStyle: 'italic' }}>"{order.note}"</div>
@@ -1087,7 +1200,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                     gap: '10px',
                                                     alignItems: 'flex-start'
                                                 }}>
-                                                    <span style={{ fontSize: '16px' }}>🚫</span>
+                                                    <ShieldAlertIcon size={16} color="#ff7875" />
                                                     <div>
                                                         <strong style={{ color: '#ff7875' }}>Lý do quán từ chối nhận đơn:</strong>
                                                         <div style={{ color: '#fff', marginTop: '2px' }}>"{order.cancel_reason}"</div>
@@ -1098,7 +1211,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                             {/* HIỂN THỊ VOUCHER ĐÃ ÁP DỤNG NẾU CÓ */}
                                             {order.voucher_code && (
                                                 <div style={{ marginTop: '8px', fontSize: '13px', color: '#52c41a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span>🎟️</span>
+                                                    <TicketIcon size={14} color="#52c41a" />
                                                     <span>Khách đã dùng Voucher: <strong style={{ textDecoration: 'underline' }}>{order.voucher_code}</strong> (Đã trừ: -{Number(order.discount_amount || 0).toLocaleString('vi-VN')}đ)</span>
                                                 </div>
                                             )}
@@ -1132,35 +1245,38 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                                                 cursor: 'pointer', 
                                                                 fontWeight: 'bold', 
                                                                 fontSize: '13px',
-                                                                transition: 'all 0.2s'
+                                                                transition: 'all 0.2s',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px'
                                                             }}
                                                         >
-                                                            ❌ Từ chối đơn
+                                                            <XIcon size={14} /> Từ chối đơn
                                                         </button>
                                                         <button 
                                                             onClick={() => handleUpdateOrderStatus(order.id, 'accepted')}
-                                                            style={{ padding: '8px 18px', background: '#ee4d2d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                                                            style={{ padding: '8px 18px', background: '#ee4d2d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
                                                         >
-                                                            ✅ Xác nhận đơn
+                                                            <CheckIcon size={14} /> Xác nhận đơn
                                                         </button>
                                                     </>
                                                 )}
                                                 {order.status === 'accepted' && (
                                                     <button 
                                                         onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
-                                                        style={{ padding: '8px 18px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                                                        style={{ padding: '8px 18px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
                                                     >
-                                                        🚀 Giao xong
+                                                        <TruckIcon size={15} /> Giao xong
                                                     </button>
                                                 )}
                                                 {order.status === 'completed' && (
-                                                    <span style={{ color: '#28a745', fontSize: '13px', fontWeight: 'bold' }}>
-                                                        ✔️ Đơn đã xong
+                                                    <span style={{ color: '#28a745', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <CheckCircleIcon size={15} /> Đơn đã xong
                                                     </span>
                                                 )}
                                                 {order.status === 'cancelled' && (
-                                                    <span style={{ color: '#ff4d4f', fontSize: '13px', fontWeight: 'bold' }}>
-                                                        ✖️ Đã hủy
+                                                    <span style={{ color: '#ff4d4f', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <XCircleIcon size={15} /> Đã hủy
                                                     </span>
                                                 )}
                                             </div>
@@ -1181,7 +1297,9 @@ export default function Seller({ currentUser, setCurrentUser }) {
                     
                     {/* KHỐI 1: BẬT TẮT TRẠNG THÁI HOẠT ĐỘNG & ĐỔI AVATAR */}
                     <div style={{ background: '#222', padding: '22px', borderRadius: '8px', border: '1px solid #333' }}>
-                        <h3 style={{ margin: '0 0 15px 0', fontSize: '18px' }}>⚙️ Hoạt Động & Ảnh Đại Diện Quán</h3>
+                        <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <SettingsIcon size={18} /> Hoạt Động & Ảnh Đại Diện Quán
+                        </h3>
                         
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -1226,10 +1344,13 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                         fontSize: '14px', 
                                         background: currentUser.is_published ? '#28a745' : '#444', 
                                         color: '#fff',
-                                        transition: 'background 0.2s'
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
                                     }}
                                 >
-                                    {currentUser.is_published ? '✅ Đang Hiện Sàn' : '👁️ Đã Ẩn Khỏi Sàn'}
+                                    {currentUser.is_published ? <><EyeIcon size={16} /> Đang Hiện Sàn</> : <><EyeOffIcon size={16} /> Đã Ẩn Khỏi Sàn</>}
                                 </button>
                                 
                                 <button 
@@ -1243,10 +1364,14 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                         fontSize: '14px', 
                                         background: currentUser.is_open ? '#007bff' : '#dc3545', 
                                         color: '#fff',
-                                        transition: 'background 0.2s'
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
                                     }}
                                 >
-                                    {currentUser.is_open ? '🟢 Đang Mở Cửa' : '🔴 Đang Đóng Cửa'}
+                                    <StatusDot color="#fff" size={8} />
+                                    {currentUser.is_open ? 'Đang Mở Cửa' : 'Đang Đóng Cửa'}
                                 </button>
                             </div>
                         </div>
@@ -1254,8 +1379,8 @@ export default function Seller({ currentUser, setCurrentUser }) {
 
                     {/* KHỐI 2: FORM THÔNG TIN CHI TIẾT CỦA QUÁN */}
                     <form onSubmit={handleSaveShopInfo} style={{ background: '#222', padding: '25px', borderRadius: '8px', border: '1px solid #333' }}>
-                        <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#fff' }}>
-                            📝 Thông Tin Chi Tiết Cửa Hàng
+                        <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <StoreIcon size={18} /> Thông Tin Chi Tiết Cửa Hàng
                         </h3>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
@@ -1335,14 +1460,19 @@ export default function Seller({ currentUser, setCurrentUser }) {
                                 borderRadius: '6px', 
                                 cursor: isSavingShopInfo ? 'not-allowed' : 'pointer', 
                                 fontWeight: 'bold', 
-                                fontSize: '15px' 
+                                fontSize: '15px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px'
                             }}
                         >
-                            {isSavingShopInfo ? 'Đang lưu...' : '💾 Lưu Thay Đổi Cài Đặt'}
+                            {isSavingShopInfo ? 'Đang lưu...' : <><SaveIcon size={16} /> Lưu Thay Đổi Cài Đặt</>}
                         </button>
                     </form>
                 </div>
             )}
+                </div>
+            </div>
 
             {/* ========================================================= */}
             {/* MODAL TỪ CHỐI NHẬN ĐƠN HÀNG */}
@@ -1351,8 +1481,8 @@ export default function Seller({ currentUser, setCurrentUser }) {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
                     <div style={{ background: '#1c1f26', padding: '26px', borderRadius: '12px', width: '100%', maxWidth: '480px', border: '1px solid #ff4d4f', boxShadow: '0 20px 50px rgba(0,0,0,0.7)', color: '#fff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255, 77, 79, 0.2)', border: '1px solid #ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
-                                🚫
+                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255, 77, 79, 0.2)', border: '1px solid #ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <ShieldAlertIcon size={22} color="#ff4d4f" />
                             </div>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '18px', color: '#ff4d4f' }}>
@@ -1449,7 +1579,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
                     <div style={{ background: '#1c1f26', padding: '26px', borderRadius: '12px', width: '100%', maxWidth: '440px', border: '1px solid #444', boxShadow: '0 20px 50px rgba(0,0,0,0.7)', color: '#fff' }}>
                         <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#ff4d4f', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            🗑️ Xác Nhận Xóa Món Ăn
+                            <TrashIcon size={18} color="#ff4d4f" /> Xác Nhận Xóa Món Ăn
                         </h3>
                         <p style={{ fontSize: '14px', color: '#ccc', lineHeight: '1.5', margin: '0 0 20px 0' }}>
                             Bạn có chắc chắn muốn xóa vĩnh viễn món <strong style={{ color: '#fff' }}>"{deleteFoodModal.foodName}"</strong> khỏi thực đơn quán?
@@ -1488,6 +1618,33 @@ export default function Seller({ currentUser, setCurrentUser }) {
 }
 
 // Helpers style
+const sidebarNavStyle = (isActive) => ({
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '11px 14px',
+    borderRadius: '8px',
+    border: 'none',
+    cursor: 'pointer',
+    background: isActive ? 'rgba(238, 77, 45, 0.15)' : 'transparent',
+    color: isActive ? '#ff5722' : '#9ca3af',
+    fontWeight: isActive ? 'bold' : '500',
+    fontSize: '13.5px',
+    transition: 'all 0.2s ease',
+    outline: 'none',
+    boxSizing: 'border-box'
+});
+
+const sidebarBadgeStyle = (isActive) => ({
+    background: isActive ? 'rgba(238, 77, 45, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+    color: isActive ? '#ff5722' : '#888',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: 'bold'
+});
+
 const getTabButtonStyle = (isActive) => ({
     padding: '10px 20px',
     border: 'none',

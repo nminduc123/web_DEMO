@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MailIcon, PhoneIcon } from '../components/Icons';
 
 export default function ForgotPassword() {
     const [step, setStep] = useState(1); // 1: Nhập thông tin, 2: Nhập OTP, 3: Đổi mật khẩu mới
@@ -126,20 +127,22 @@ export default function ForgotPassword() {
                             onClick={() => { setRecoveryType('email'); setContactValue(''); }}
                             style={{ 
                                 flex: 1, padding: '8px', background: recoveryType === 'email' ? '#ee4d2d' : '#1c1c1c', 
-                                color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' 
+                                color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontSize: '13px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                             }}
                         >
-                            📧 Qua Email
+                            <MailIcon size={14} /> Qua Email
                         </button>
                         <button 
                             type="button" 
                             onClick={() => { setRecoveryType('phone'); setContactValue(''); }}
                             style={{ 
                                 flex: 1, padding: '8px', background: recoveryType === 'phone' ? '#ee4d2d' : '#1c1c1c', 
-                                color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' 
+                                color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontSize: '13px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                             }}
                         >
-                            📱 Qua Số điện thoại
+                            <PhoneIcon size={14} /> Qua Số điện thoại
                         </button>
                     </div>
 

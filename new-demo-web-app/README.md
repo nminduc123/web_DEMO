@@ -54,15 +54,35 @@ npm run dev
 
 | Vai trò (Role) | Email đăng nhập | Mật khẩu | Mô tả quyền hạn |
 | :--- | :--- | :--- | :--- |
-| **🛡️ Quản trị viên (Admin)** | `admin@mbite.com` | `admin123` | Toàn quyền quản lý: Phân quyền, Khóa/Mở tài khoản, Phát hành voucher sàn, Duyệt đơn giải trình/minh oan. |
-| **👨‍🍳 Chủ quán (Seller)** | `1@4.com` | `4` | Kênh quản lý nhà hàng: Quản lý thực đơn món ăn, Cài đặt quán, Duyệt/Từ chối đơn hàng kèm lý do, Thống kê doanh thu. |
-| **👨‍🍳 Chủ quán (Seller 2)** | `1@3.com` | `3` | Quán thứ hai trên hệ thống. |
-| **🛒 Khách hàng (Buyer)** | `1@2.com` | `2` | Khách mua hàng: Chọn món, Đặt hàng (COD / VietQR), Theo dõi tiến độ tại "Đơn hàng của tôi", Hủy đơn sau 5 phút và nhận thông báo hoàn tiền VietQR. |
-| **🛒 Khách hàng (Buyer 2)**| `1@5.com` | `5` | Tài khoản khách hàng mẫu khác. |
+| **🛡️ Quản trị viên (Admin)** | `admin@mbite.com` | `admin123` | ID #0. Toàn quyền quản lý: Phân quyền, Khóa/Mở tài khoản, Phát hành voucher sàn (phần trăm / tiền mặt), Duyệt phản hồi người dùng. |
+| **👨‍🍳 Chủ quán (Seller 1)** | `1@4.com` | `4` | Quán "Bếp Ăn Đêm": Quản lý món ăn, cập nhật giá/hết hàng/bật tắt món, Duyệt & xác nhận giao đơn hàng, Thống kê doanh thu. |
+| **👨‍🍳 Chủ quán (Seller 2)** | `1@3.com` | `3` | Quán "Minh": Quán ăn thứ hai trên hệ thống. |
+| **🛒 Khách hàng (Buyer 1)** | `1@2.com` | `2` | Khách mua hàng: Săn voucher, Lưu voucher vào ví (mỗi acc dùng 1 lần), Thêm giỏ hàng, Đặt món COD/VietQR, Theo dõi đơn và hủy đơn sau 5 phút. |
+| **🛒 Khách hàng (Buyer 2)** | `1@5.com` | `5` | Tài khoản khách hàng mẫu khác. |
+
+---
+
+## ✨ Tính năng nổi bật đã tích hợp hoàn chỉnh
+1. **Quản trị viên toàn quyền (`/admin`)**:
+   - Giao diện Admin Control Center tối giản, hiện đại với bố cục thanh menu trái (Sidebar) trực quan.
+   - Quản trị viên tối cao mang `ID: #0`, được ẩn khỏi danh sách thành viên tự do và được bảo vệ tuyệt đối (không thể tự khóa hoặc bị đổi quyền).
+   - Quản lý phân quyền người dùng (Buyer / Seller / Admin).
+   - Phát hành voucher sàn, bật/tắt kích hoạt, xóa voucher.
+   - Hộp thư xử lý phản hồi/khiếu nại từ người dùng bị khóa tài khoản.
+2. **Kênh Nhà hàng (`/seller`)**:
+   - Quản lý thực đơn: Thêm/Sửa/Xóa món ăn, gắn tag gợi ý (Phổ biến, Bán chạy, Mới).
+   - Kiểm soát đơn hàng theo luồng chuẩn: *Chờ xác nhận -> Đang chuẩn bị -> Đã giao xong / Từ chối*.
+   - Báo cáo doanh thu và đơn hàng thời gian thực.
+3. **Kênh Người mua (`/`, `/shop/:id`, `/checkout`, `/my-orders`, `/my-vouchers`)**:
+   - Danh mục "Voucher" trên Header để săn và lưu voucher vào Ví cá nhân.
+   - Ví voucher (`/my-vouchers`) trong dropdown người dùng: Tự động lưu voucher, xóa voucher khỏi ví ngay sau khi đặt hàng (mỗi tài khoản chỉ được sử dụng 1 lần duy nhất).
+   - Quán yêu thích (Thả tim và quản lý quán yêu thích trong Profile).
+   - Theo dõi đơn hàng theo thời gian thực tại "Đơn hàng của tôi".
+   - Tự động phát hiện tài khoản bị khóa và hiển thị màn hình gửi ý kiến phản hồi tới Admin.
 
 ---
 
 ## 🛠️ Công nghệ sử dụng
 - **Backend**: Node.js, Express.js, MySQL2, Multer (xử lý upload ảnh), CORS.
-- **Frontend**: React 18, Vite, React Router DOM, Toast Context, CSS Module/Inline Styling hiện đại chuẩn Dark Theme.
-- **Database**: MySQL (`food_app`), lưu trữ các bảng: `users`, `menu`, `orders`, `vouchers`, `ban_appeals`, `favorite_shops`.
+- **Frontend**: React 19, Vite, React Router DOM v7, Toast Context, SVG Icon System.
+- **Database**: MySQL (`food_app`), lưu trữ các bảng: `users`, `menu`, `orders`, `vouchers`, `user_vouchers`, `favorite_shops`, `ban_appeals`.

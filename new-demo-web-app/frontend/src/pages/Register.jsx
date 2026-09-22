@@ -187,7 +187,7 @@ export default function Register() {
                 )}
 
                 <button type="submit" style={{ background: '#ee4d2d', color: '#fff', padding: '12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>
-                    {role === 'seller' && step === 1 ? 'Tiếp tục ➔' : 'Đăng Ký'}
+                    {role === 'seller' && step === 1 ? 'Tiếp tục →' : 'Đăng Ký'}
                 </button>
             </form>
 

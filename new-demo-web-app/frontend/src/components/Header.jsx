@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import logoMBite from '../assets/logo-mbite.png';
 import { useToast } from '../context/ToastContext';
 import { SHOP_CATEGORIES } from '../constants/categories';
+import { StoreIcon, SettingsIcon, UserIcon, PackageIcon, HeartIcon, KeyIcon, LogOutIcon, TicketIcon } from './Icons';
 
 export default function Header({ 
     currentUser, 
@@ -24,7 +25,7 @@ export default function Header({
     const navigate = useNavigate();
     const { showToast } = useToast();
 
-    const categoryTabs = ['Tất cả', ...SHOP_CATEGORIES];
+    const categoryTabs = ['Tất cả', ...SHOP_CATEGORIES, 'Voucher'];
 
     // Đồng bộ searchText khi searchKeyword thay đổi từ bên ngoài (ví dụ xóa tìm kiếm)
     useEffect(() => {
@@ -144,7 +145,7 @@ export default function Header({
                                     padding: '7px 16px', 
                                     borderRadius: '6px', 
                                     fontSize: '13px', 
-                                    fontWeight: 'bold',
+                                    fontWeight: 'bold', 
                                     letterSpacing: '0.5px',
                                     cursor: 'pointer',
                                     boxShadow: '0 2px 8px rgba(114, 46, 209, 0.4)',
@@ -153,15 +154,15 @@ export default function Header({
                                     gap: '6px'
                                 }}
                             >
-                                🛡️ BẢNG ĐIỀU KHIỂN ADMIN
+                                Admin-Panel
                             </span>
                             <span 
                                 onClick={() => navigate('/')}
-                                style={{ color: '#aaa', fontSize: '14px', cursor: 'pointer', transition: 'color 0.2s' }}
+                                style={{ color: '#aaa', fontSize: '14px', cursor: 'pointer', transition: 'color 0.2s', display: 'flex', alignItems: 'center', gap: '6px' }}
                                 onMouseEnter={e => e.currentTarget.style.color = '#fff'}
                                 onMouseLeave={e => e.currentTarget.style.color = '#aaa'}
                             >
-                                🏪 Xem sàn M-Bite ➔
+                                <StoreIcon size={16} /> Xem sàn M-Bite →
                             </span>
                         </div>
                     ) : (
@@ -286,21 +287,7 @@ export default function Header({
                         
                         {currentUser ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                {isAdmin && (
-                                    <div 
-                                        style={{ 
-                                            display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', 
-                                            border: '1px solid #722ed1', padding: '6px 14px', borderRadius: '50px', 
-                                            background: 'rgba(114, 46, 209, 0.2)', color: '#d3adf7', fontSize: '13px', fontWeight: 'bold' 
-                                        }} 
-                                        onClick={() => navigate('/admin')}
-                                        title="Mở Bảng Điều Khiển Admin"
-                                    >
-                                        <span>🛡️</span> Quản Trị
-                                    </div>
-                                )}
-
-                                {/* NÚT GIỎ HÀNG THU GỌN: CHỈ ICON XE CART + BADGE SỐ LƯỢNG */}
+                                {/* NÚT GIỎ HÀNG THU GỌN: KHÔNG VIỀN, TỐI GIẢN HIỆN ĐẠI */}
                                 <div 
                                     style={{ 
                                         position: 'relative',
@@ -308,31 +295,36 @@ export default function Header({
                                         alignItems: 'center', 
                                         justifyContent: 'center',
                                         cursor: 'pointer', 
-                                        border: '1px solid #ee4d2d', 
-                                        width: '40px',
-                                        height: '40px',
-                                        borderRadius: '50%', 
-                                        background: '#2a2a2a',
-                                        transition: 'all 0.2s ease',
-                                        flexShrink: 0
+                                        padding: '8px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        transition: 'color 0.2s ease, transform 0.2s ease',
+                                        flexShrink: 0,
+                                        color: '#ccc'
                                     }} 
                                     onClick={() => navigate('/checkout')}
                                     title={`Giỏ hàng (${cart.reduce((sum, item) => sum + (item.quantity || 1), 0)} món)`}
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#383838'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                    onMouseEnter={(e) => { 
+                                        e.currentTarget.style.color = '#fff';
+                                        e.currentTarget.style.transform = 'translateY(-1px)'; 
+                                    }}
+                                    onMouseLeave={(e) => { 
+                                        e.currentTarget.style.color = '#ccc';
+                                        e.currentTarget.style.transform = 'translateY(0)'; 
+                                    }}
                                 >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ee4d2d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
                                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                                     </svg>
                                     {cart.length > 0 && (
                                         <span style={{ 
                                             position: 'absolute', 
-                                            top: '-5px', 
-                                            right: '-5px', 
+                                            top: '-2px', 
+                                            right: '-2px', 
                                             background: '#ee4d2d', 
                                             color: '#fff', 
-                                            borderRadius: '50%', 
+                                            borderRadius: '10px', 
                                             minWidth: '18px', 
                                             height: '18px', 
                                             display: 'flex', 
@@ -340,8 +332,8 @@ export default function Header({
                                             justifyContent: 'center', 
                                             fontSize: '11px', 
                                             fontWeight: 'bold', 
-                                            padding: '0 4px',
-                                            boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
+                                            padding: '0 5px',
+                                            boxShadow: '0 2px 6px rgba(238, 77, 45, 0.4)',
                                             border: '2px solid #1c1c1c'
                                         }}>
                                             {cart.reduce((sum, item) => sum + (item.quantity || 1), 0)}
@@ -373,38 +365,44 @@ export default function Header({
                                                     style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff', background: 'rgba(114, 46, 209, 0.2)' }} 
                                                     onClick={() => { setIsProfileOpen(false); navigate('/admin'); }}
                                                 >
-                                                    <span style={{ fontSize: '18px' }}>🛡️</span><span style={{ fontWeight: 'bold', color: '#d3adf7' }}>Bảng Điều Khiển Admin</span>
+                                                    <SettingsIcon size={18} color="#d3adf7" /><span style={{ fontWeight: 'bold', color: '#d3adf7' }}>Admin-Panel</span>
                                                 </div>
                                             )}
                                             <div 
                                                 style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
                                                 onClick={() => { setIsProfileOpen(false); navigate('/profile?tab=info'); }}
                                             >
-                                                <span style={{ fontSize: '18px' }}>👤</span><span style={{ fontWeight: '500' }}>Thông tin tài khoản</span>
+                                                <UserIcon size={18} color="#aaa" /><span style={{ fontWeight: '500' }}>Thông tin tài khoản</span>
                                             </div>
                                             <div 
                                                 style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
                                                 onClick={() => { setIsProfileOpen(false); navigate('/my-orders'); }}
                                             >
-                                                <span style={{ fontSize: '18px' }}>📦</span><span style={{ fontWeight: '500' }}>Đơn hàng của tôi</span>
+                                                <PackageIcon size={18} color="#aaa" /><span style={{ fontWeight: '500' }}>Đơn hàng của tôi</span>
+                                            </div>
+                                            <div 
+                                                style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
+                                                onClick={() => { setIsProfileOpen(false); navigate('/my-vouchers'); }}
+                                            >
+                                                <TicketIcon size={18} color="#aaa" /><span style={{ fontWeight: '500' }}>Ví voucher</span>
                                             </div>
                                             <div 
                                                 style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
                                                 onClick={() => { setIsProfileOpen(false); navigate('/profile?tab=favorites'); }}
                                             >
-                                                <span style={{ fontSize: '18px' }}>❤️</span><span style={{ fontWeight: '500' }}>Quán yêu thích</span>
+                                                <HeartIcon size={18} color="#aaa" /><span style={{ fontWeight: '500' }}>Quán yêu thích</span>
                                             </div>
                                             <div 
                                                 style={{ padding: '12px 15px', borderBottom: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', color: '#fff' }} 
                                                 onClick={() => { setIsProfileOpen(false); navigate('/profile?tab=password'); }}
                                             >
-                                                <span style={{ fontSize: '18px' }}>🔑</span><span style={{ fontWeight: '500' }}>Đổi mật khẩu</span>
+                                                <KeyIcon size={18} color="#aaa" /><span style={{ fontWeight: '500' }}>Đổi mật khẩu</span>
                                             </div>
                                             <div 
                                                 onClick={() => { setIsProfileOpen(false); handleLogout(); }} 
                                                 style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#2a2a2a' }}
                                             >
-                                                <span style={{ fontSize: '18px' }}>🚪</span><span style={{ color: '#ee4d2d', fontWeight: 'bold' }}>Đăng xuất</span>
+                                                <LogOutIcon size={18} color="#ee4d2d" /><span style={{ color: '#ee4d2d', fontWeight: 'bold' }}>Đăng xuất</span>
                                             </div>
                                         </div>
                                     )}

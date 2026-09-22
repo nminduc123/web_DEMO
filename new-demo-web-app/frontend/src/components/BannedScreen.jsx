@@ -1,4 +1,18 @@
 import { useState, useEffect } from 'react';
+import { 
+    ShieldAlertIcon, 
+    AlertTriangleIcon, 
+    EditIcon, 
+    MailIcon, 
+    SendIcon, 
+    CalendarIcon, 
+    CheckCircleIcon, 
+    XCircleIcon, 
+    ClockIcon, 
+    MessageSquareIcon, 
+    RefreshIcon, 
+    LogOutIcon 
+} from './Icons';
 
 export default function BannedScreen({ currentUser, setCurrentUser }) {
     const [appealReason, setAppealReason] = useState('');
@@ -44,7 +58,7 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
             const data = await res.json();
             if (data.success) {
                 if (!data.is_blocked) {
-                    setStatusMessage({ text: "🎉 Chúc mừng! Tài khoản của bạn đã được Quản trị viên mở khóa!", type: "success" });
+                    setStatusMessage({ text: "Chúc mừng! Tài khoản của bạn đã được Quản trị viên mở khóa!", type: "success" });
                     setTimeout(() => {
                         setCurrentUser(prev => prev ? ({ ...prev, is_blocked: false, ban_reason: null }) : null);
                     }, 1200);
@@ -60,11 +74,11 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
         }
     };
 
-    // Gửi đơn giải trình minh oan
+    // Gửi ý kiến phản hồi
     const handleSubmitAppeal = async (e) => {
         e.preventDefault();
         if (!appealReason.trim()) {
-            setStatusMessage({ text: "Vui lòng nhập nội dung giải trình hoặc minh oan cụ thể!", type: "error" });
+            setStatusMessage({ text: "Vui lòng nhập nội dung phản hồi cụ thể!", type: "error" });
             return;
         }
 
@@ -83,16 +97,16 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
             });
             const data = await res.json();
             if (data.success) {
-                setStatusMessage({ text: "✅ Đã gửi đơn minh oan thành công! Vui lòng theo dõi phản hồi từ Admin ở tab bên cạnh.", type: "success" });
+                setStatusMessage({ text: "Đã gửi phản hồi thành công! Vui lòng theo dõi kết quả phản hồi từ Admin ở tab bên cạnh.", type: "success" });
                 setAppealReason('');
                 setEvidenceInfo('');
                 fetchMyAppeals();
                 setActiveTab('history');
             } else {
-                setStatusMessage({ text: data.message || "Gửi đơn không thành công!", type: "error" });
+                setStatusMessage({ text: data.message || "Gửi phản hồi không thành công!", type: "error" });
             }
         } catch (err) {
-            setStatusMessage({ text: "Lỗi kết nối khi gửi đơn giải trình.", type: "error" });
+            setStatusMessage({ text: "Lỗi kết nối khi gửi phản hồi.", type: "error" });
         } finally {
             setSubmitting(false);
         }
@@ -146,12 +160,11 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '36px',
                             marginBottom: '14px',
                             boxShadow: '0 0 25px rgba(255, 77, 79, 0.4)'
                         }}
                     >
-                        🚫
+                        <ShieldAlertIcon size={36} color="#ff4d4f" />
                     </div>
                     <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff4d4f', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         Tài Khoản Đã Bị Khóa / Tạm Dừng
@@ -172,7 +185,7 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                     }}
                 >
                     <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#ff7875', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        ⚠️ Lý do kỷ luật từ Quản trị viên:
+                        <AlertTriangleIcon size={16} color="#ff7875" /> Lý do kỷ luật từ Quản trị viên:
                     </div>
                     <div style={{ fontSize: '15px', color: '#fff', fontWeight: '500', lineHeight: '1.5' }}>
                         "{currentUser?.ban_reason || 'Vi phạm điều khoản & quy định sử dụng dịch vụ của hệ thống.'}"
@@ -210,10 +223,13 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                             fontWeight: activeTab === 'new' ? 'bold' : 'normal',
                             cursor: 'pointer',
                             fontSize: '14px',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
                         }}
                     >
-                        ✍️ Gửi Đơn Minh Oan / Khiếu Nại
+                        <EditIcon size={15} /> Gửi Ý Kiến Phản Hồi
                     </button>
                     <button
                         type="button"
@@ -230,10 +246,10 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                             transition: 'all 0.2s',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '8px'
                         }}
                     >
-                        📬 Lịch Sử & Phản Hồi Từ Admin
+                        <MailIcon size={15} /> Lịch Sử Phản Hồi
                         {appeals.length > 0 && (
                             <span style={{ backgroundColor: '#ff4d4f', color: '#fff', fontSize: '11px', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
                                 {appeals.length}
@@ -242,19 +258,19 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                     </button>
                 </div>
 
-                {/* TAB 1: FORM GỬI ĐƠN MINH OAN */}
+                {/* TAB 1: FORM GỬI PHẢN HỒI */}
                 {activeTab === 'new' && (
                     <form onSubmit={handleSubmitAppeal}>
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '6px' }}>
-                                Lời giải trình & bằng chứng minh oan: <span style={{ color: '#ff4d4f' }}>*</span>
+                                Nội dung phản hồi & ý kiến đóng góp: <span style={{ color: '#ff4d4f' }}>*</span>
                             </label>
                             <textarea
                                 rows={4}
                                 required
                                 value={appealReason}
                                 onChange={(e) => setAppealReason(e.target.value)}
-                                placeholder="Hãy giải thích rõ ngữ cảnh hoặc nguyên nhân (ví dụ: Tài khoản bị truy cập trái phép, sự cố mạng, hiểu nhầm trong đơn hàng, cam kết không tái phạm...)..."
+                                placeholder="Hãy chia sẻ nội dung phản hồi, ý kiến đóng góp hoặc nguyên nhân (ví dụ: Tài khoản bị đăng nhập lạ, sự cố mạng, hiểu nhầm trong giao dịch...)..."
                                 style={{
                                     width: '100%',
                                     backgroundColor: '#0d1117',
@@ -309,25 +325,27 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                                 transition: 'background-color 0.2s',
                                 display: 'flex',
                                 alignItems: 'center',
+                                justifyCenter: 'center',
                                 justifyContent: 'center',
                                 gap: '8px'
                             }}
                         >
-                            {submitting ? 'Đang gửi đơn minh oan...' : '📨 Gửi Đơn Minh Oan & Yêu Cầu Gỡ Ban'}
+                            <SendIcon size={16} />
+                            {submitting ? 'Đang gửi phản hồi...' : 'Gửi Phản Hồi & Yêu Cầu Mở Khóa'}
                         </button>
                     </form>
                 )}
 
-                {/* TAB 2: LỊCH SỬ KHIẾU NẠI & PHẢN HỒI CỦA ADMIN */}
+                {/* TAB 2: LỊCH SỬ PHẢN HỒI CỦA ADMIN */}
                 {activeTab === 'history' && (
                     <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
                         {loadingAppeals ? (
                             <div style={{ textAlign: 'center', padding: '30px', color: '#888' }}>
-                                Đang tải danh sách khiếu nại...
+                                Đang tải danh sách phản hồi...
                             </div>
                         ) : appeals.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '30px', color: '#888', background: '#0d1117', borderRadius: '8px' }}>
-                                Bạn chưa gửi đơn minh oan nào. Hãy chuyển qua tab "Gửi Đơn Minh Oan" nếu bạn muốn gửi giải trình tới Admin.
+                                Bạn chưa gửi phản hồi nào. Hãy chuyển qua tab "Gửi Ý Kiến Phản Hồi" nếu bạn muốn gửi thông tin tới Ban Quản Trị.
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -342,8 +360,8 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#8b949e' }}>
-                                                📅 Gửi lúc: {new Date(item.created_at).toLocaleString('vi-VN')}
+                                            <span style={{ fontSize: '12px', color: '#8b949e', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <CalendarIcon size={13} /> Gửi lúc: {new Date(item.created_at).toLocaleString('vi-VN')}
                                             </span>
                                             <span 
                                                 style={{
@@ -353,12 +371,15 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                                                     fontWeight: 'bold',
                                                     backgroundColor: item.status === 'pending' ? 'rgba(250, 173, 20, 0.15)' : item.status === 'approved' ? 'rgba(82, 196, 26, 0.15)' : 'rgba(255, 77, 79, 0.15)',
                                                     color: item.status === 'pending' ? '#faad14' : item.status === 'approved' ? '#52c41a' : '#ff4d4f',
-                                                    border: `1px solid ${item.status === 'pending' ? 'rgba(250, 173, 20, 0.4)' : item.status === 'approved' ? 'rgba(82, 196, 26, 0.4)' : 'rgba(255, 77, 79, 0.4)'}`
+                                                    border: `1px solid ${item.status === 'pending' ? 'rgba(250, 173, 20, 0.4)' : item.status === 'approved' ? 'rgba(82, 196, 26, 0.4)' : 'rgba(255, 77, 79, 0.4)'}`,
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '5px'
                                                 }}
                                             >
-                                                {item.status === 'pending' && '⏳ Đang chờ Admin xét duyệt'}
-                                                {item.status === 'approved' && '✅ Đã chấp nhận & Gỡ khóa'}
-                                                {item.status === 'rejected' && '❌ Đã bị từ chối'}
+                                                {item.status === 'pending' && <><ClockIcon size={12} /> Đang chờ Admin xét duyệt</>}
+                                                {item.status === 'approved' && <><CheckCircleIcon size={12} /> Đã chấp nhận & Gỡ khóa</>}
+                                                {item.status === 'rejected' && <><XCircleIcon size={12} /> Đã bị từ chối</>}
                                             </span>
                                         </div>
 
@@ -386,16 +407,16 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                                                     borderLeft: `4px solid ${item.status === 'approved' ? '#52c41a' : '#ff4d4f'}`
                                                 }}
                                             >
-                                                <div style={{ fontSize: '12px', fontWeight: 'bold', color: item.status === 'approved' ? '#73d13d' : '#ff7875', marginBottom: '2px' }}>
-                                                    💬 Phản hồi chính thức từ Ban Quản Trị:
+                                                <div style={{ fontSize: '12px', fontWeight: 'bold', color: item.status === 'approved' ? '#73d13d' : '#ff7875', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <MessageSquareIcon size={13} /> Phản hồi chính thức từ Ban Quản Trị:
                                                 </div>
                                                 <div style={{ fontSize: '13px', color: '#fff' }}>
                                                     {item.admin_response}
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div style={{ fontSize: '12px', color: '#faad14', fontStyle: 'italic', marginTop: '6px' }}>
-                                                ⏳ Admin đang đối chiếu hồ sơ và sẽ phản hồi trong vòng 24 giờ.
+                                            <div style={{ fontSize: '12px', color: '#faad14', fontStyle: 'italic', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <ClockIcon size={12} /> Admin đang đối chiếu hồ sơ và sẽ phản hồi trong vòng 24 giờ.
                                             </div>
                                         )}
                                     </div>
@@ -425,7 +446,8 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                             gap: '6px'
                         }}
                     >
-                        🔄 {isRefreshing ? 'Đang kiểm tra...' : 'Kiểm tra trạng thái mở khóa'}
+                        <RefreshIcon size={14} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+                        {isRefreshing ? 'Đang kiểm tra...' : 'Kiểm tra trạng thái mở khóa'}
                     </button>
 
                     <button
@@ -439,12 +461,15 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
                             borderRadius: '6px',
                             fontSize: '13px',
                             cursor: 'pointer',
-                            transition: 'color 0.2s'
+                            transition: 'color 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
                         }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = '#ff4d4f'; e.currentTarget.style.borderColor = '#ff4d4f'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = '#8b949e'; e.currentTarget.style.borderColor = '#30363d'; }}
                     >
-                        🚪 Đăng xuất tài khoản
+                        <LogOutIcon size={14} /> Đăng xuất tài khoản
                     </button>
                 </div>
             </div>

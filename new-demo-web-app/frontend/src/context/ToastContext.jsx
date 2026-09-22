@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { CheckCircleIcon, XCircleIcon, AlertTriangleIcon, InfoIcon, XIcon } from '../components/Icons';
 
 const ToastContext = createContext(null);
 
@@ -39,21 +40,21 @@ export function ToastProvider({ children }) {
             case 'success':
                 return {
                     borderColor: '#28a745',
-                    icon: '✅',
+                    icon: <CheckCircleIcon size={20} color="#28a745" />,
                     titleColor: '#28a745',
                     bgGradient: 'linear-gradient(135deg, #1f2d22 0%, #171f19 100%)'
                 };
             case 'error':
                 return {
                     borderColor: '#ff4d4f',
-                    icon: '❌',
+                    icon: <XCircleIcon size={20} color="#ff4d4f" />,
                     titleColor: '#ff4d4f',
                     bgGradient: 'linear-gradient(135deg, #331c1e 0%, #201315 100%)'
                 };
             case 'warning':
                 return {
                     borderColor: '#fa8c16',
-                    icon: '⚠️',
+                    icon: <AlertTriangleIcon size={20} color="#fa8c16" />,
                     titleColor: '#fa8c16',
                     bgGradient: 'linear-gradient(135deg, #332717 0%, #1f1a12 100%)'
                 };
@@ -61,7 +62,7 @@ export function ToastProvider({ children }) {
             default:
                 return {
                     borderColor: '#ee4d2d',
-                    icon: '🔔',
+                    icon: <InfoIcon size={20} color="#ee4d2d" />,
                     titleColor: '#ee4d2d',
                     bgGradient: 'linear-gradient(135deg, #2a201d 0%, #1c1918 100%)'
                 };
@@ -150,7 +151,7 @@ export function ToastProvider({ children }) {
                                 onMouseLeave={(e) => (e.currentTarget.style.color = '#888')}
                                 title="Đóng thông báo"
                             >
-                                ✕
+                                <XIcon size={14} />
                             </button>
                         </div>
                     );

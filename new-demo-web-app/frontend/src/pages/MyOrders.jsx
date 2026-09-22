@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { 
+    PackageIcon, RefreshIcon, ClockIcon, ChefHatIcon, CheckCircleIcon, 
+    XCircleIcon, CartIcon, StoreIcon, AlertTriangleIcon, XIcon, 
+    RevenueIcon, UtensilsIcon, FileTextIcon, CreditCardIcon, BanknoteIcon, 
+    TicketIcon, InfoIcon 
+} from '../components/Icons';
 
 export default function MyOrders({ currentUser }) {
     const navigate = useNavigate();
@@ -50,6 +56,9 @@ export default function MyOrders({ currentUser }) {
 
     const filteredOrders = orders.filter(order => {
         if (selectedTab === 'all') return true;
+        if (selectedTab === 'preparing' || selectedTab === 'accepted') {
+            return order.status === 'preparing' || order.status === 'accepted';
+        }
         return order.status === selectedTab;
     });
 
@@ -57,28 +66,33 @@ export default function MyOrders({ currentUser }) {
         switch (status) {
             case 'pending':
                 return {
-                    label: '⏳ Chờ quán duyệt',
+                    label: 'Chờ quán duyệt',
+                    icon: <ClockIcon size={13} />,
                     bg: 'rgba(250, 173, 20, 0.15)',
                     color: '#faad14',
                     border: '#faad14'
                 };
+            case 'accepted':
             case 'preparing':
                 return {
-                    label: '👨‍🍳 Đang chuẩn bị món',
+                    label: 'Đang làm',
+                    icon: <ChefHatIcon size={13} />,
                     bg: 'rgba(24, 144, 255, 0.15)',
                     color: '#1890ff',
                     border: '#1890ff'
                 };
             case 'completed':
                 return {
-                    label: '✅ Giao thành công',
+                    label: 'Giao thành công',
+                    icon: <CheckCircleIcon size={13} />,
                     bg: 'rgba(82, 196, 26, 0.15)',
                     color: '#52c41a',
                     border: '#52c41a'
                 };
             case 'cancelled':
                 return {
-                    label: '❌ Đã từ chối / Hủy',
+                    label: 'Đã từ chối / Hủy',
+                    icon: <XCircleIcon size={13} />,
                     bg: 'rgba(255, 77, 79, 0.15)',
                     color: '#ff4d4f',
                     border: '#ff4d4f'
@@ -86,6 +100,7 @@ export default function MyOrders({ currentUser }) {
             default:
                 return {
                     label: status,
+                    icon: null,
                     bg: '#333',
                     color: '#fff',
                     border: '#444'
@@ -95,6 +110,9 @@ export default function MyOrders({ currentUser }) {
 
     const countByStatus = (status) => {
         if (status === 'all') return orders.length;
+        if (status === 'preparing' || status === 'accepted') {
+            return orders.filter(o => o.status === 'preparing' || o.status === 'accepted').length;
+        }
         return orders.filter(o => o.status === status).length;
     };
 
@@ -165,7 +183,7 @@ export default function MyOrders({ currentUser }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
                     <div>
                         <h1 style={{ fontSize: '26px', fontWeight: 'bold', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span>📦</span> Đơn Hàng Của Tôi
+                            <PackageIcon size={26} color="#ee4d2d" /> Đơn Hàng Của Tôi
                         </h1>
                         <p style={{ color: '#888', margin: 0, fontSize: '14px' }}>
                             Theo dõi tiến độ đơn hàng, hủy đơn khi quán lâu duyệt và nhận hoàn tiền VietQR tự động
@@ -190,18 +208,18 @@ export default function MyOrders({ currentUser }) {
                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#ee4d2d'; e.currentTarget.style.color = '#fff'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#ccc'; }}
                     >
-                        <span>🔄</span> Làm mới
+                        <RefreshIcon size={14} /> Làm mới
                     </button>
                 </div>
 
                 {/* BỘ LỌC TRẠNG THÁI TABS */}
                 <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '20px', borderBottom: '1px solid #282828' }}>
                     {[
-                        { key: 'all', label: 'Tất cả' },
-                        { key: 'pending', label: '⏳ Chờ duyệt' },
-                        { key: 'preparing', label: '👨‍🍳 Đang làm' },
-                        { key: 'completed', label: '✅ Hoàn thành' },
-                        { key: 'cancelled', label: '❌ Đã từ chối / Hủy' }
+                        { key: 'all', label: 'Tất cả', icon: null },
+                        { key: 'pending', label: 'Chờ duyệt', icon: <ClockIcon size={13} /> },
+                        { key: 'preparing', label: 'Đang làm', icon: <ChefHatIcon size={13} /> },
+                        { key: 'completed', label: 'Hoàn thành', icon: <CheckCircleIcon size={13} /> },
+                        { key: 'cancelled', label: 'Đã từ chối / Hủy', icon: <XCircleIcon size={13} /> }
                     ].map(tab => {
                         const count = countByStatus(tab.key);
                         const isActive = selectedTab === tab.key;
@@ -219,9 +237,13 @@ export default function MyOrders({ currentUser }) {
                                     fontSize: '13px',
                                     cursor: 'pointer',
                                     whiteSpace: 'nowrap',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
                                 }}
                             >
+                                {tab.icon}
                                 {tab.label} {count > 0 && `(${count})`}
                             </button>
                         );
@@ -231,12 +253,16 @@ export default function MyOrders({ currentUser }) {
                 {/* DANH SÁCH ĐƠN HÀNG */}
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '60px 0', color: '#888' }}>
-                        <div style={{ fontSize: '24px', marginBottom: '10px' }}>⏳</div>
+                        <div style={{ marginBottom: '10px' }}>
+                            <ClockIcon size={28} color="#888" />
+                        </div>
                         Đang tải danh sách đơn hàng...
                     </div>
                 ) : filteredOrders.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '70px 20px', background: '#1c1c1c', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
-                        <div style={{ fontSize: '48px', marginBottom: '15px' }}>🛒</div>
+                        <div style={{ marginBottom: '15px' }}>
+                            <CartIcon size={48} color="#888" />
+                        </div>
                         <h3 style={{ fontSize: '18px', color: '#eee', marginBottom: '8px' }}>Chưa có đơn hàng nào</h3>
                         <p style={{ color: '#777', fontSize: '14px', marginBottom: '20px' }}>
                             {selectedTab === 'all' 
@@ -291,17 +317,16 @@ export default function MyOrders({ currentUser }) {
                                 >
                                     {/* HEADER ĐƠN HÀNG */}
                                     <div style={{ 
-                                        padding: '14px 20px', 
-                                        background: '#242424', 
+                                        padding: '16px 20px', 
                                         display: 'flex', 
                                         alignItems: 'center', 
-                                        justifyContent: 'space-between',
-                                        flexWrap: 'wrap',
+                                        justifyContent: 'space-between', 
+                                        flexWrap: 'wrap', 
                                         gap: '10px',
                                         borderBottom: '1px solid #333'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '18px' }}>🏪</span>
+                                            <StoreIcon size={18} color="#ee4d2d" />
                                             <div>
                                                 <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#fff' }}>
                                                     {order.shop_name || 'Quán đối tác M-Bite'}
@@ -320,8 +345,12 @@ export default function MyOrders({ currentUser }) {
                                                 fontWeight: 'bold',
                                                 background: badge.bg,
                                                 color: badge.color,
-                                                border: `1px solid ${badge.border}`
+                                                border: `1px solid ${badge.border}`,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
                                             }}>
+                                                {badge.icon}
                                                 {badge.label}
                                             </div>
                                         </div>
@@ -340,7 +369,7 @@ export default function MyOrders({ currentUser }) {
                                             gap: '12px'
                                         }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <span style={{ fontSize: '18px' }}>{canCancel ? '⚠️' : '⏱️'}</span>
+                                                {canCancel ? <AlertTriangleIcon size={18} color="#ff7875" /> : <ClockIcon size={18} color="#ffd666" />}
                                                 <div>
                                                     {canCancel ? (
                                                         <div style={{ color: '#ff7875', fontSize: '13px', fontWeight: 'bold' }}>
@@ -377,7 +406,7 @@ export default function MyOrders({ currentUser }) {
                                                     onMouseEnter={e => { e.currentTarget.style.background = '#ff4d4f'; e.currentTarget.style.color = '#fff'; }}
                                                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 77, 79, 0.15)'; e.currentTarget.style.color = '#ff4d4f'; }}
                                                 >
-                                                    <span>❌</span> Hủy đơn hàng
+                                                    <XIcon size={14} /> Hủy đơn hàng
                                                 </button>
                                             ) : (
                                                 <button
@@ -396,7 +425,7 @@ export default function MyOrders({ currentUser }) {
                                                     }}
                                                     title="Bạn có thể hủy đơn nếu quán không tiếp nhận sau 5 phút"
                                                 >
-                                                    <span>⏳</span> Hủy đơn sau {Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:{(remainingSeconds % 60).toString().padStart(2, '0')}
+                                                    <ClockIcon size={13} /> Hủy đơn sau {Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:{(remainingSeconds % 60).toString().padStart(2, '0')}
                                                 </button>
                                             )}
                                         </div>
@@ -408,7 +437,7 @@ export default function MyOrders({ currentUser }) {
                                             
                                             {/* Lý do từ chối / hủy đơn */}
                                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: isQR ? '12px' : '0' }}>
-                                                <span style={{ color: '#ff4d4f', fontSize: '16px' }}>⚠️</span>
+                                                <AlertTriangleIcon size={16} color="#ff7875" />
                                                 <div>
                                                     <span style={{ color: '#ff7875', fontWeight: 'bold', fontSize: '13px' }}>
                                                         Lý do hủy / từ chối:
@@ -430,7 +459,7 @@ export default function MyOrders({ currentUser }) {
                                                     alignItems: 'flex-start',
                                                     gap: '12px'
                                                 }}>
-                                                    <span style={{ fontSize: '24px' }}>💸</span>
+                                                    <RevenueIcon size={22} color="#5cdbd3" />
                                                     <div style={{ flex: 1 }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
                                                             <strong style={{ color: '#5cdbd3', fontSize: '14px', letterSpacing: '0.3px' }}>
@@ -450,15 +479,15 @@ export default function MyOrders({ currentUser }) {
                                                         <p style={{ color: '#b5f5ec', fontSize: '13px', margin: '0 0 6px 0', lineHeight: '1.5' }}>
                                                             Đơn hàng đã được quý khách thanh toán chuyển khoản qua <strong>VietQR</strong>. Số tiền <strong style={{ color: '#fff', fontSize: '14px' }}>{order.total_price?.toLocaleString('vi-VN')}đ</strong> đã được hệ thống tạo lệnh hoàn trả về số tài khoản quý khách đã thực hiện chuyển.
                                                         </p>
-                                                        <div style={{ fontSize: '12px', color: '#87e8de' }}>
-                                                            ⏳ Thời gian nhận lại tiền: Từ <strong>5 phút - 24 giờ làm việc</strong> tuỳ theo ngân hàng thụ hưởng.
+                                                        <div style={{ fontSize: '12px', color: '#87e8de', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <ClockIcon size={12} /> Thời gian nhận lại tiền: Từ <strong>5 phút - 24 giờ làm việc</strong> tuỳ theo ngân hàng thụ hưởng.
                                                             {order.shop_phone && ` Hotline hỗ trợ quán: ${order.shop_phone}`}
                                                         </div>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div style={{ fontSize: '12px', color: '#aaa', marginTop: '6px' }}>
-                                                    ℹ️ Đơn hàng thanh toán khi nhận hàng (COD), bạn chưa bị trừ bất kỳ khoản chi phí nào.
+                                                <div style={{ fontSize: '12px', color: '#aaa', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <InfoIcon size={13} /> Đơn hàng thanh toán khi nhận hàng (COD), bạn chưa bị trừ bất kỳ khoản chi phí nào.
                                                 </div>
                                             )}
                                         </div>
@@ -476,8 +505,8 @@ export default function MyOrders({ currentUser }) {
                                                             style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', background: '#333' }}
                                                         />
                                                     ) : (
-                                                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                                                            🍲
+                                                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <UtensilsIcon size={20} color="#888" />
                                                         </div>
                                                     )}
                                                     <div>
@@ -496,8 +525,9 @@ export default function MyOrders({ currentUser }) {
 
                                         {/* Ghi chú đơn nếu có */}
                                         {order.note && (
-                                            <div style={{ padding: '8px 12px', background: '#222', borderRadius: '6px', fontSize: '12px', color: '#bbb', marginTop: '6px' }}>
-                                                📝 <strong>Ghi chú cho quán:</strong> {order.note}
+                                            <div style={{ padding: '8px 12px', background: '#222', borderRadius: '6px', fontSize: '12px', color: '#bbb', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <FileTextIcon size={14} color="#aaa" />
+                                                <span><strong>Ghi chú cho quán:</strong> {order.note}</span>
                                             </div>
                                         )}
                                     </div>
@@ -528,7 +558,7 @@ export default function MyOrders({ currentUser }) {
                                                     alignItems: 'center',
                                                     gap: '5px'
                                                 }}>
-                                                    <span>💳</span> Chuyển khoản VietQR
+                                                    <CreditCardIcon size={13} /> Chuyển khoản VietQR
                                                 </span>
                                             ) : (
                                                 <span style={{ 
@@ -543,13 +573,13 @@ export default function MyOrders({ currentUser }) {
                                                     alignItems: 'center',
                                                     gap: '5px'
                                                 }}>
-                                                    <span>💵</span> Tiền mặt (COD)
+                                                    <BanknoteIcon size={13} /> Tiền mặt (COD)
                                                 </span>
                                             )}
 
                                             {order.voucher_code && (
-                                                <span style={{ background: 'rgba(238, 77, 45, 0.15)', color: '#ee4d2d', border: '1px solid #ee4d2d', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
-                                                    🎟️ {order.voucher_code} (-{order.discount_amount?.toLocaleString('vi-VN')}đ)
+                                                <span style={{ background: 'rgba(238, 77, 45, 0.15)', color: '#ee4d2d', border: '1px solid #ee4d2d', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                    <TicketIcon size={12} /> {order.voucher_code} (-{order.discount_amount?.toLocaleString('vi-VN')}đ)
                                                 </span>
                                             )}
                                         </div>
@@ -596,13 +626,13 @@ export default function MyOrders({ currentUser }) {
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
                             <h3 style={{ margin: 0, fontSize: '18px', color: '#ff4d4f', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span>❌</span> Xác Nhận Hủy Đơn Hàng #{cancelModalOrder.id}
+                                <XCircleIcon size={18} color="#ff4d4f" /> Xác Nhận Hủy Đơn Hàng #{cancelModalOrder.id}
                             </h3>
                             <button 
                                 onClick={() => setCancelModalOrder(null)}
-                                style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '20px', cursor: 'pointer' }}
+                                style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                                ✕
+                                <XIcon size={18} />
                             </button>
                         </div>
 
@@ -618,8 +648,8 @@ export default function MyOrders({ currentUser }) {
                                 color: '#87e8de',
                                 lineHeight: '1.5'
                             }}>
-                                <strong style={{ color: '#5cdbd3', display: 'block', marginBottom: '4px' }}>
-                                    💸 Lưu ý hoàn tiền VietQR:
+                                <strong style={{ color: '#5cdbd3', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                    <RevenueIcon size={15} color="#5cdbd3" /> Lưu ý hoàn tiền VietQR:
                                 </strong>
                                 Đơn hàng này đã được thanh toán. Sau khi bạn xác nhận hủy, hệ thống sẽ <strong>tự động hoàn tiền {cancelModalOrder.total_price?.toLocaleString('vi-VN')}đ</strong> về tài khoản ngân hàng của bạn.
                             </div>
@@ -630,9 +660,12 @@ export default function MyOrders({ currentUser }) {
                                 padding: '10px 14px',
                                 marginBottom: '16px',
                                 fontSize: '13px',
-                                color: '#ccc'
+                                color: '#ccc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
                             }}>
-                                ℹ️ Đơn thanh toán khi nhận hàng (COD), bạn không bị trừ bất kỳ chi phí nào khi hủy.
+                                <InfoIcon size={14} /> Đơn thanh toán khi nhận hàng (COD), bạn không bị trừ bất kỳ chi phí nào khi hủy.
                             </div>
                         )}
 

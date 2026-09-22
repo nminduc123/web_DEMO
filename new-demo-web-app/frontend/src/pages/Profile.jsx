@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { 
+    UserIcon, PackageIcon, HeartIcon, KeyIcon, SettingsIcon, 
+    PhoneIcon, MailIcon, MapPinIcon, CameraIcon, CheckIcon, 
+    SaveIcon, XIcon, ClockIcon, HeartOffIcon, TagIcon, LockIcon,
+    ArrowRightIcon, StatusDot, TicketIcon
+} from '../components/Icons';
 
 export default function Profile({ currentUser, setCurrentUser, defaultTab = 'info' }) {
     const navigate = useNavigate();
@@ -123,7 +129,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                 localStorage.setItem('user', JSON.stringify(finalUser));
                 setAvatarFile(null);
                 setIsEditing(false);
-                showToast("🎉 Cập nhật thông tin tài khoản thành công!", "success");
+                showToast("Cập nhật thông tin tài khoản thành công!", "success");
             } else {
                 showToast(data.message || "Cập nhật thất bại!", "error");
             }
@@ -177,7 +183,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
             const data = await res.json();
             if (data.success) {
                 setFavoriteShops(prev => prev.filter(s => s.id !== shopId));
-                showToast(`💔 Đã xóa "${shopName}" khỏi danh sách yêu thích.`, "info");
+                showToast(`Đã xóa "${shopName}" khỏi danh sách yêu thích.`, "info");
             }
         } catch (err) {
             showToast("Lỗi khi bỏ yêu thích quán!", "error");
@@ -220,7 +226,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
             const data = await res.json();
 
             if (data.success) {
-                showToast("🎉 Đổi mật khẩu thành công!", "success");
+                showToast("Đổi mật khẩu thành công!", "success");
                 setCurrentPassword('');
                 setNewPassword('');
                 setConfirmPassword('');
@@ -239,7 +245,9 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
         return (
             <div style={{ maxWidth: '600px', margin: '60px auto', padding: '0 20px', textAlign: 'center', color: '#fff' }}>
                 <div style={{ background: '#222', padding: '40px 30px', borderRadius: '8px', border: '1px solid #333' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>🔒</div>
+                    <div style={{ marginBottom: '15px' }}>
+                        <LockIcon size={48} color="#888" />
+                    </div>
                     <h2 style={{ margin: '0 0 10px 0' }}>Vui lòng đăng nhập</h2>
                     <p style={{ color: '#888', marginBottom: '25px', fontSize: '14px' }}>
                         Bạn cần đăng nhập để quản lý thông tin tài khoản và xem các quán yêu thích.
@@ -303,92 +311,100 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
     };
 
     return (
-        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '30px 20px', color: '#fff', fontFamily: 'Arial, sans-serif' }}>
-            
-            {/* TIÊU ĐỀ TRANG */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #333', paddingBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                    <h1 style={{ margin: '0 0 5px 0', fontSize: '24px' }}>
-                        Tài Khoản Của Tôi
-                    </h1>
-                    <span style={{ fontSize: '13px', color: '#888' }}>
-                        Quản lý hồ sơ cá nhân, địa chỉ nhận hàng và các quán ăn yêu thích
-                    </span>
-                </div>
-                <button
-                    onClick={() => navigate('/')}
-                    style={{
-                        padding: '8px 16px',
-                        background: '#2a2a2a',
-                        color: '#ccc',
-                        border: '1px solid #444',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '13px'
-                    }}
-                >
-                    ← Về trang chủ
-                </button>
-            </div>
-
-            {/* BỐ CỤC CHÍNH: CỘT MENU TRÁI & KHU VỰC NỘI DUNG PHẢI */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '25px', alignItems: 'start' }}>
+        <div style={{ minHeight: '85vh', background: '#141414', color: '#fff', padding: '30px 20px', fontFamily: 'Arial, sans-serif' }}>
+            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
                 
-                {/* MENU ĐIỀU HƯỚNG TRÁI */}
-                <div style={{
-                    background: '#222',
-                    borderRadius: '8px',
-                    border: '1px solid #333',
-                    padding: '20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                }}>
-                    {/* Header hồ sơ nhanh */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '15px', marginBottom: '10px', borderBottom: '1px solid #333' }}>
-                        <img
-                            src={currentUser.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
-                            alt="Avatar"
-                            style={{ width: '45px', height: '45px', borderRadius: '50%', background: '#fff', border: '2px solid #ee4d2d', objectFit: 'cover' }}
-                        />
-                        <div style={{ overflow: 'hidden' }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {currentUser.full_name || 'Khách hàng'}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {currentUser.email}
+                {/* TIÊU ĐỀ TRANG */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #333', paddingBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                        <h1 style={{ margin: '0 0 5px 0', fontSize: '24px', color: '#fff' }}>
+                            Tài Khoản Của Tôi
+                        </h1>
+                        <span style={{ fontSize: '13px', color: '#888' }}>
+                            Quản lý hồ sơ cá nhân, địa chỉ nhận hàng và các quán ăn yêu thích
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => navigate('/')}
+                        style={{
+                            padding: '8px 16px',
+                            background: '#2a2a2a',
+                            color: '#ccc',
+                            border: '1px solid #444',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px'
+                        }}
+                    >
+                        ← Về trang chủ
+                    </button>
+                </div>
+
+                {/* BỐ CỤC CHÍNH: CỘT MENU TRÁI & KHU VỰC NỘI DUNG PHẢI */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '25px', alignItems: 'start' }}>
+                    
+                    {/* MENU ĐIỀU HƯỚNG TRÁI */}
+                    <div style={{
+                        background: '#222',
+                        borderRadius: '8px',
+                        border: '1px solid #333',
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
+                    }}>
+                        {/* Header hồ sơ nhanh */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '15px', marginBottom: '10px', borderBottom: '1px solid #333' }}>
+                            <img
+                                src={currentUser.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                                alt="Avatar"
+                                style={{ width: '45px', height: '45px', borderRadius: '50%', background: '#fff', border: '2px solid #ee4d2d', objectFit: 'cover' }}
+                            />
+                            <div style={{ overflow: 'hidden' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {currentUser.full_name || 'Khách hàng'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {currentUser.email}
+                                </div>
                             </div>
                         </div>
+
+                        <button
+                            onClick={() => handleTabChange('info')}
+                            style={{ ...navItemStyle('info'), display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <UserIcon size={16} /> Hồ Sơ & Địa Chỉ Nhận Hàng
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/my-orders')}
+                            style={{ ...navItemStyle('orders'), display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <PackageIcon size={16} /> Đơn Hàng Của Tôi
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/my-vouchers')}
+                            style={{ ...navItemStyle('vouchers'), display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <TicketIcon size={16} /> Ví Voucher Của Tôi
+                        </button>
+
+                        <button
+                            onClick={() => handleTabChange('favorites')}
+                            style={{ ...navItemStyle('favorites'), display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <HeartIcon size={16} /> Quán Ăn Yêu Thích
+                        </button>
+
+                        <button
+                            onClick={() => handleTabChange('password')}
+                            style={{ ...navItemStyle('password'), display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <KeyIcon size={16} /> Đổi Mật Khẩu
+                        </button>
                     </div>
-
-                    <button
-                        onClick={() => handleTabChange('info')}
-                        style={navItemStyle('info')}
-                    >
-                        <span>👤</span> Hồ Sơ & Địa Chỉ Nhận Hàng
-                    </button>
-
-                    <button
-                        onClick={() => navigate('/my-orders')}
-                        style={navItemStyle('orders')}
-                    >
-                        <span>📦</span> Đơn Hàng Của Tôi
-                    </button>
-
-                    <button
-                        onClick={() => handleTabChange('favorites')}
-                        style={navItemStyle('favorites')}
-                    >
-                        <span>❤️</span> Quán Ăn Yêu Thích
-                    </button>
-
-                    <button
-                        onClick={() => handleTabChange('password')}
-                        style={navItemStyle('password')}
-                    >
-                        <span>🔑</span> Đổi Mật Khẩu
-                    </button>
-                </div>
 
                 {/* KHU VỰC NỘI DUNG PHẢI */}
                 <div style={{
@@ -437,7 +453,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                             onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
                                             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                                         >
-                                            <span>⚙️</span> Cài Đặt / Chỉnh Sửa
+                                            <SettingsIcon size={15} /> Cài Đặt / Chỉnh Sửa
                                         </button>
                                     </div>
 
@@ -473,17 +489,17 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                                     <span style={{
-                                                        background: '#2e7d32',
+                                                        background: (currentUser.role === 'admin' || currentUser.email === 'admin@mbite.com') ? '#722ed1' : currentUser.role === 'seller' ? '#fa8c16' : '#2e7d32',
                                                         color: '#fff',
                                                         fontSize: '12px',
                                                         fontWeight: '600',
                                                         padding: '3px 10px',
                                                         borderRadius: '12px'
                                                     }}>
-                                                        Tài khoản Khách hàng
+                                                        {(currentUser.role === 'admin' || currentUser.email === 'admin@mbite.com') ? 'Quản trị viên (Admin)' : currentUser.role === 'seller' ? 'Chủ quán (Seller)' : 'Tài khoản Khách hàng'}
                                                     </span>
                                                     <span style={{ fontSize: '12px', color: '#888' }}>
-                                                        Mã ID: #{currentUser.id}
+                                                        Mã ID: #{(currentUser.role === 'admin' || currentUser.email === 'admin@mbite.com') ? 0 : currentUser.id}
                                                     </span>
                                                 </div>
                                             </div>
@@ -492,8 +508,8 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                         {/* Bảng chi tiết các trường thông tin */}
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
                                             <div style={{ background: '#252525', padding: '14px 16px', borderRadius: '8px', border: '1px solid #383838' }}>
-                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600' }}>
-                                                    👤 HỌ VÀ TÊN
+                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <UserIcon size={14} /> HỌ VÀ TÊN
                                                 </div>
                                                 <div style={{ fontSize: '15px', color: currentUser.full_name ? '#fff' : '#888', fontWeight: '500' }}>
                                                     {currentUser.full_name || '(Chưa cập nhật họ tên)'}
@@ -501,8 +517,8 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                             </div>
 
                                             <div style={{ background: '#252525', padding: '14px 16px', borderRadius: '8px', border: '1px solid #383838' }}>
-                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600' }}>
-                                                    📞 SỐ ĐIỆN THOẠI
+                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <PhoneIcon size={14} /> SỐ ĐIỆN THOẠI
                                                 </div>
                                                 <div style={{ fontSize: '15px', color: currentUser.phone ? '#fff' : '#888', fontWeight: '500' }}>
                                                     {currentUser.phone || '(Chưa cập nhật số điện thoại)'}
@@ -510,8 +526,8 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                             </div>
 
                                             <div style={{ background: '#252525', padding: '14px 16px', borderRadius: '8px', border: '1px solid #383838' }}>
-                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600' }}>
-                                                    ✉️ ĐỊA CHỈ EMAIL
+                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <MailIcon size={14} /> ĐỊA CHỈ EMAIL
                                                 </div>
                                                 <div style={{ fontSize: '15px', color: '#fff', fontWeight: '500' }}>
                                                     {currentUser.email}
@@ -519,8 +535,8 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                             </div>
 
                                             <div style={{ background: '#252525', padding: '14px 16px', borderRadius: '8px', border: '1px solid #383838', gridColumn: '1 / -1' }}>
-                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600' }}>
-                                                    📍 ĐỊA CHỈ GIAO HÀNG MẶC ĐỊNH
+                                                <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <MapPinIcon size={14} /> ĐỊA CHỈ GIAO HÀNG MẶC ĐỊNH
                                                 </div>
                                                 <div style={{ fontSize: '15px', color: currentUser.address ? '#fff' : '#888', fontWeight: '500', lineHeight: '1.5' }}>
                                                     {currentUser.address || '(Chưa thiết lập địa chỉ mặc định)'}
@@ -534,8 +550,8 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #333', paddingBottom: '15px', marginBottom: '20px' }}>
                                         <div>
-                                            <h3 style={{ margin: '0 0 5px 0', fontSize: '18px', color: '#fff' }}>
-                                                ⚙️ Cài Đặt & Chỉnh Sửa Thông Tin
+                                            <h3 style={{ margin: '0 0 5px 0', fontSize: '18px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <SettingsIcon size={18} /> Cài Đặt & Chỉnh Sửa Thông Tin
                                             </h3>
                                             <p style={{ margin: 0, fontSize: '13px', color: '#888' }}>
                                                 Cập nhật họ tên, ảnh đại diện, số điện thoại và địa chỉ nhận hàng
@@ -551,10 +567,13 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                 border: '1px solid #555',
                                                 borderRadius: '6px',
                                                 cursor: 'pointer',
-                                                fontSize: '13px'
+                                                fontSize: '13px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
                                             }}
                                         >
-                                            ✕ Quay lại xem thông tin
+                                            <XIcon size={14} /> Quay lại xem thông tin
                                         </button>
                                     </div>
 
@@ -609,12 +628,12 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                             gap: '6px'
                                                         }}
                                                     >
-                                                        📷 Chọn ảnh đại diện mới
+                                                        <CameraIcon size={15} /> Chọn ảnh đại diện mới
                                                     </button>
                                                     {avatarFile && (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <span style={{ fontSize: '12px', color: '#4caf50', fontWeight: '500' }}>
-                                                                ✓ {avatarFile.name}
+                                                            <span style={{ fontSize: '12px', color: '#4caf50', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                <CheckIcon size={13} /> {avatarFile.name}
                                                             </span>
                                                             <button
                                                                 type="button"
@@ -713,10 +732,17 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                     fontWeight: 'bold',
                                                     fontSize: '14px',
                                                     boxShadow: '0 2px 8px rgba(238, 77, 45, 0.4)',
-                                                    transition: 'background 0.2s'
+                                                    transition: 'background 0.2s',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
                                                 }}
                                             >
-                                                {isSavingProfile ? 'Đang lưu...' : '💾 Lưu Thay Đổi'}
+                                                {isSavingProfile ? 'Đang lưu...' : (
+                                                    <>
+                                                        <SaveIcon size={15} /> Lưu Thay Đổi
+                                                    </>
+                                                )}
                                             </button>
                                             <button
                                                 type="button"
@@ -730,10 +756,13 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                     borderRadius: '6px',
                                                     cursor: 'pointer',
                                                     fontSize: '14px',
-                                                    fontWeight: '500'
+                                                    fontWeight: '500',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
                                                 }}
                                             >
-                                                ✕ Hủy Bỏ
+                                                <XIcon size={14} /> Hủy Bỏ
                                             </button>
                                         </div>
                                     </form>
@@ -759,17 +788,19 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                             </div>
 
                             {isLoadingFavorites ? (
-                                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888' }}>
-                                    ⏳ Đang tải danh sách quán yêu thích...
+                                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    <ClockIcon size={16} /> Đang tải danh sách quán yêu thích...
                                 </div>
                             ) : favoriteShops.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '60px 20px', color: '#888' }}>
-                                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>💔</div>
+                                    <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
+                                        <HeartOffIcon size={48} color="#888" />
+                                    </div>
                                     <h4 style={{ color: '#fff', margin: '0 0 8px 0', fontSize: '16px' }}>
                                         Bạn chưa lưu quán yêu thích nào
                                     </h4>
                                     <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px 0', lineHeight: '1.5' }}>
-                                        Hãy bấm vào biểu tượng Trái tim (❤️) nằm cùng hàng với tên quán khi vào xem thực đơn để lưu quán vào danh sách này nhé!
+                                        Hãy bấm vào biểu tượng Trái tim (<HeartIcon size={14} color="#ee4d2d" fill="#ee4d2d" style={{ verticalAlign: 'text-bottom' }} />) nằm cùng hàng với tên quán khi vào xem thực đơn để lưu quán vào danh sách này nhé!
                                     </p>
                                     <button
                                         onClick={() => navigate('/')}
@@ -840,7 +871,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                     zIndex: 2
                                                 }}
                                             >
-                                                ❤️
+                                                <HeartIcon size={16} color="#ff4d4f" fill="#ff4d4f" />
                                             </button>
 
                                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '10px' }}>
@@ -873,18 +904,19 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                             {shop.shop_name}
                                                         </h4>
                                                     </div>
-                                                    <div style={{ fontSize: '12px', color: isClosed ? '#888' : '#ee4d2d', fontWeight: 'bold' }}>
-                                                        🏷 {shop.shop_category || 'Đồ ăn'}
+                                                    <div style={{ fontSize: '12px', color: isClosed ? '#888' : '#ee4d2d', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <TagIcon size={12} /> {shop.shop_category || 'Đồ ăn'}
                                                     </div>
-                                                    <div style={{ fontSize: '11px', color: shop.is_open ? '#28a745' : '#888', marginTop: '2px' }}>
-                                                        {shop.is_open ? '● Đang mở cửa' : '● Tạm đóng cửa'}
+                                                    <div style={{ fontSize: '11px', color: shop.is_open ? '#28a745' : '#888', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                        <StatusDot color={shop.is_open ? '#28a745' : '#888'} size={6} />
+                                                        {shop.is_open ? 'Đang mở cửa' : 'Tạm đóng cửa'}
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {shop.shop_address && (
-                                                <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    📍 {shop.shop_address}
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <MapPinIcon size={12} /> {shop.shop_address}
                                                 </p>
                                             )}
 
@@ -899,12 +931,16 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                                                     cursor: 'pointer',
                                                     fontSize: '12px',
                                                     fontWeight: 'bold',
-                                                    transition: 'all 0.2s'
+                                                    transition: 'all 0.2s',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px'
                                                 }}
                                                 onMouseEnter={e => { e.currentTarget.style.background = '#ee4d2d'; e.currentTarget.style.borderColor = '#ee4d2d'; }}
                                                 onMouseLeave={e => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.borderColor = '#444'; }}
                                             >
-                                                Xem Thực Đơn ➔
+                                                Xem Thực Đơn <ArrowRightIcon size={13} />
                                             </button>
                                         </div>
                                         );
@@ -989,5 +1025,6 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                 </div>
             </div>
         </div>
+    </div>
     );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { StoreIcon, HeartIcon, TagIcon, MapPinIcon, AlertTriangleIcon, UtensilsIcon, CartIcon, ClockIcon } from '../components/Icons';
 
 export default function ShopDetail({ currentUser, addToCart }) {
     const { id } = useParams();
@@ -47,9 +48,9 @@ export default function ShopDetail({ currentUser, addToCart }) {
             if (data.success) {
                 setIsFavorited(data.isFavorited);
                 if (data.isFavorited) {
-                    showToast(`❤️ Đã thêm "${shop?.shop_name || 'Quán'}" vào danh sách quán yêu thích!`, "success");
+                    showToast(`Đã thêm "${shop?.shop_name || 'Quán'}" vào danh sách quán yêu thích!`, "success");
                 } else {
-                    showToast(`💔 Đã xóa "${shop?.shop_name || 'Quán'}" khỏi quán yêu thích.`, "info");
+                    showToast(`Đã xóa "${shop?.shop_name || 'Quán'}" khỏi quán yêu thích.`, "info");
                 }
             }
         } catch (err) {
@@ -111,7 +112,9 @@ export default function ShopDetail({ currentUser, addToCart }) {
         return (
             <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 20px', color: '#fff', textAlign: 'center' }}>
                 <div style={{ padding: '60px 20px', background: '#222', borderRadius: '8px', border: '1px solid #333' }}>
-                    <p style={{ fontSize: '18px', color: '#aaa' }}>⏳ Đang tải thực đơn của quán...</p>
+                    <p style={{ fontSize: '18px', color: '#aaa', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <ClockIcon size={20} /> Đang tải thực đơn của quán...
+                    </p>
                 </div>
             </div>
         );
@@ -121,7 +124,7 @@ export default function ShopDetail({ currentUser, addToCart }) {
         return (
             <div style={{ maxWidth: '800px', margin: '60px auto', padding: '0 20px', color: '#fff', textAlign: 'center' }}>
                 <div style={{ padding: '50px 30px', background: '#2a2222', borderRadius: '8px', border: '1px solid #ff4d4f55' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>🏪❌</div>
+                    <div style={{ marginBottom: '15px', color: '#ff4d4f', display: 'flex', justifyContent: 'center' }}><StoreIcon size={48} /></div>
                     <h3 style={{ color: '#ff4d4f', margin: '0 0 10px 0' }}>Không thể xem thực đơn</h3>
                     <p style={{ color: '#ccc', marginBottom: '25px', lineHeight: '1.6' }}>{errorMsg}</p>
                     <button
@@ -221,21 +224,20 @@ export default function ShopDetail({ currentUser, addToCart }) {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
-                                    fontSize: '18px',
                                     transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                                     transform: isFavorited ? 'scale(1.1)' : 'scale(1)',
                                     boxShadow: isFavorited ? '0 0 12px rgba(255, 77, 79, 0.6)' : 'none'
                                 }}
                             >
-                                {isFavorited ? '❤️' : '🤍'}
+                                <HeartIcon size={20} color={isFavorited ? '#ff4d4f' : '#888'} fill={isFavorited ? '#ff4d4f' : 'none'} />
                             </button>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#aaa', marginBottom: '6px' }}>
-                            <span style={{ color: '#ee4d2d', background: '#ee4d2d22', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
-                                🏷 {shop?.shop_category || 'Đồ ăn'}
+                            <span style={{ color: '#ee4d2d', background: '#ee4d2d22', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                <TagIcon size={12} /> {shop?.shop_category || 'Đồ ăn'}
                             </span>
                             {shop?.shop_address && (
-                                <span>📍 {shop.shop_address}</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><MapPinIcon size={13} /> {shop.shop_address}</span>
                             )}
                         </div>
                         {shop?.shop_description && (
@@ -278,7 +280,7 @@ export default function ShopDetail({ currentUser, addToCart }) {
                     alignItems: 'center',
                     gap: '10px'
                 }}>
-                    <span style={{ fontSize: '20px' }}>⚠️</span>
+                    <AlertTriangleIcon size={20} color="#ff4d4f" />
                     <span>Hiện tại quán đang tạm nghỉ đóng cửa, bạn chỉ có thể xem menu nhưng chưa thể thêm món vào giỏ hàng!</span>
                 </div>
             )}
@@ -286,7 +288,7 @@ export default function ShopDetail({ currentUser, addToCart }) {
             {/* TIÊU ĐỀ MENU */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
                 <h2 style={{ margin: 0, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span>📋 Thực Đơn Món Ăn</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><UtensilsIcon size={20} /> Thực Đơn Món Ăn</span>
                     <span style={{ fontSize: '13px', color: '#888', fontWeight: 'normal' }}>
                         ({foods.length} món)
                     </span>
@@ -387,7 +389,11 @@ export default function ShopDetail({ currentUser, addToCart }) {
                                             if (canOrder) e.currentTarget.style.background = '#ee4d2d';
                                         }}
                                     >
-                                        {!isOpen ? 'Quán đang nghỉ' : isSoldOut ? 'Đã hết hàng' : '🛒 Thêm vào giỏ'}
+                                        {!isOpen ? 'Quán đang nghỉ' : isSoldOut ? 'Đã hết hàng' : (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                <CartIcon size={16} /> Thêm vào giỏ
+                                            </span>
+                                        )}
                                     </button>
                                 </div>
                             </div>

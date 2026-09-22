@@ -2,6 +2,121 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 
+// Clean modern SVG icons for Admin panel
+const UsersIcon = ({ size = 16, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+);
+
+const StoreIcon = ({ size = 16, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+    </svg>
+);
+
+const TicketIcon = ({ size = 16, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"></path>
+        <line x1="12" y1="5" x2="12" y2="19" strokeDasharray="2 2"></line>
+    </svg>
+);
+
+const RevenueIcon = ({ size = 16, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <line x1="12" y1="1" x2="12" y2="23"></line>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+    </svg>
+);
+
+const InboxIcon = ({ size = 16, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+        <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+    </svg>
+);
+
+const MailIcon = ({ size = 13, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
+    </svg>
+);
+
+const PhoneIcon = ({ size = 13, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+    </svg>
+);
+
+const RefreshIcon = ({ size = 13, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+    </svg>
+);
+
+const PlusIcon = ({ size = 14, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+);
+
+const EditIcon = ({ size = 13, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+);
+
+const TrashIcon = ({ size = 13, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+);
+
+const LockIcon = ({ size = 13, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+);
+
+const UnlockIcon = ({ size = 13, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+    </svg>
+);
+
+const CheckIcon = ({ size = 14, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+);
+
+const XIcon = ({ size = 14, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+);
+
+const AlertIcon = ({ size = 18, color = 'currentColor', style = {} }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', flexShrink: 0, ...style }}>
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+);
+
 export default function Admin({ currentUser }) {
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -41,7 +156,7 @@ export default function Admin({ currentUser }) {
     });
 
     // ==========================================
-    // STATE CHO TAB 3: XỬ LÝ KHIẾU NẠI & MINH OAN
+    // STATE CHO TAB 3: HỘP THƯ PHẢN HỒI NGƯỜI DÙNG
     // ==========================================
     const [appeals, setAppeals] = useState([]);
     const [loadingAppeals, setLoadingAppeals] = useState(false);
@@ -119,7 +234,7 @@ export default function Admin({ currentUser }) {
         }
     };
 
-    // Tải danh sách khiếu nại minh oan
+    // Tải danh sách phản hồi người dùng
     const fetchAppeals = async () => {
         try {
             setLoadingAppeals(true);
@@ -129,8 +244,8 @@ export default function Admin({ currentUser }) {
                 setAppeals(data.appeals || []);
             }
         } catch (err) {
-            console.error("Lỗi lấy danh sách khiếu nại:", err);
-            showToast("Không thể tải danh sách khiếu nại!", "error");
+            console.error("Lỗi lấy danh sách phản hồi:", err);
+            showToast("Không thể tải danh sách phản hồi!", "error");
         } finally {
             setLoadingAppeals(false);
         }
@@ -147,6 +262,10 @@ export default function Admin({ currentUser }) {
     // CÁC HÀM XỬ LÝ NGƯỜI DÙNG
     // ==========================================
     const handleChangeRole = (userId, targetRole, userEmail) => {
+        if (userId === 0 || userEmail === 'admin@mbite.com') {
+            showToast("Không thể thay đổi quyền Quản trị viên tối cao!", "warning");
+            return;
+        }
         setConfirmModal({
             isOpen: true,
             title: 'Thay Đổi Quyền Hạn Tài Khoản',
@@ -180,6 +299,10 @@ export default function Admin({ currentUser }) {
     };
 
     const handleToggleBlock = (userId, currentBlocked, userEmail, userName) => {
+        if (userId === 0 || userEmail === 'admin@mbite.com') {
+            showToast("Không thể khóa tài khoản Quản trị viên tối cao!", "warning");
+            return;
+        }
         if (currentBlocked) {
             // Mở khóa: Hiện popup xác nhận mở khóa
             setConfirmModal({
@@ -251,18 +374,18 @@ export default function Admin({ currentUser }) {
     };
 
     // ==========================================
-    // CÁC HÀM XỬ LÝ KHIẾU NẠI & MINH OAN
+    // CÁC HÀM XỬ LÝ PHẢN HỒI NGƯỜI DÙNG
     // ==========================================
     const handleResolveAppeal = (appealId, action, userId) => {
         const responseText = adminResponses[appealId] || '';
-        const actionLabel = action === 'approved' ? 'DUYỆT MINH OAN & MỞ KHÓA' : 'TỪ CHỐI KHIẾU NẠI';
+        const actionLabel = action === 'approved' ? 'DUYỆT PHẢN HỒI & MỞ KHÓA' : 'TỪ CHỐI PHẢN HỒI';
 
         setConfirmModal({
             isOpen: true,
             title: `Xác Nhận ${actionLabel}`,
             message: action === 'approved' 
-                ? `Bạn có chắc muốn chấp nhận đơn minh oan và mở khóa ngay lập tức cho tài khoản này?`
-                : `Bạn có chắc muốn từ chối đơn minh oan này kèm theo lời giải thích đã nhập?`,
+                ? `Bạn có chắc muốn chấp thuận phản hồi và mở khóa ngay lập tức cho tài khoản này?`
+                : `Bạn có chắc muốn từ chối phản hồi này kèm theo lời giải thích đã nhập?`,
             confirmText: action === 'approved' ? 'Duyệt & Mở Khóa' : 'Từ Chối',
             confirmColor: action === 'approved' ? '#52c41a' : '#ff4d4f',
             onConfirm: async () => {
@@ -284,7 +407,7 @@ export default function Admin({ currentUser }) {
                         fetchUsers();
                         fetchStats();
                     } else {
-                        showToast(data.message || "Lỗi xử lý khiếu nại!", "error");
+                        showToast(data.message || "Lỗi xử lý phản hồi!", "error");
                     }
                 } catch (err) {
                     showToast("Lỗi kết nối máy chủ!", "error");
@@ -298,6 +421,12 @@ export default function Admin({ currentUser }) {
 
     // Lọc danh sách người dùng
     const filteredUsers = users.filter(user => {
+        // Ẩn tài khoản Admin gốc (admin@mbite.com / id = 0) khỏi danh sách quản lý
+        // Các tài khoản khác được nâng quyền Admin vẫn hiển thị bình thường
+        if (user.email === 'admin@mbite.com' || Number(user.id) === 0) {
+            return false;
+        }
+
         const query = userSearch.toLowerCase().trim();
         const matchText = (
             (user.email && user.email.toLowerCase().includes(query)) ||
@@ -430,128 +559,219 @@ export default function Admin({ currentUser }) {
     };
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '30px 20px', color: '#fff', fontFamily: 'Arial, sans-serif' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '30px 20px', fontFamily: 'Arial, sans-serif', color: '#fff' }}>
             
             {/* TIÊU ĐỀ TRANG ADMIN */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #333', paddingBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ 
-                        background: 'linear-gradient(135deg, #722ed1 0%, #eb2f96 100%)', 
-                        width: '50px', height: '50px', borderRadius: '12px', 
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px' 
-                    }}>
-                        🛡️
-                    </div>
-                    <div>
-                        <h1 style={{ margin: '0 0 5px 0', fontSize: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            Trang Quản Trị Hệ Thống (Admin Control Center)
-                            <span style={{ fontSize: '12px', background: '#722ed1', color: '#fff', padding: '3px 8px', borderRadius: '20px', fontWeight: 'bold' }}>
-                                TOÀN QUYỀN
-                            </span>
-                        </h1>
-                        <span style={{ fontSize: '13px', color: '#aaa' }}>
-                            Xin chào, <strong style={{ color: '#fff' }}>{currentUser?.full_name || currentUser?.email}</strong>! Quản lý người dùng, phân quyền và phát hành khuyến mãi sàn.
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '15px' }}>
+                <div>
+                    <h1 style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', color: '#fff' }}>
+                        Admin Control Center
+                        <span style={{ fontSize: '11px', background: 'linear-gradient(135deg, #722ed1 0%, #eb2f96 100%)', color: '#fff', padding: '3px 10px', borderRadius: '20px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                            TOÀN QUYỀN
                         </span>
-                    </div>
+                    </h1>
+                    <span style={{ fontSize: '13px', color: '#9ca3af' }}>
+                        Xin chào, <strong style={{ color: '#fff' }}>{currentUser?.full_name || currentUser?.email}</strong>! Hệ thống kiểm soát người dùng, phân quyền và phát hành voucher sàn.
+                    </span>
                 </div>
                 <button
                     onClick={() => navigate('/')}
                     style={{
                         padding: '9px 18px',
-                        background: '#222',
-                        color: '#ccc',
-                        border: '1px solid #444',
-                        borderRadius: '6px',
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        color: '#e5e7eb',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         fontSize: '13px',
-                        fontWeight: 'bold',
+                        fontWeight: '500',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
                         transition: 'all 0.2s'
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#333'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = '#ccc'; e.currentTarget.style.background = '#222'; }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#e5e7eb'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'; }}
                 >
                     ← Về Trang Chủ M-Bite
                 </button>
             </div>
 
-            {/* CÁC THẺ THỐNG KÊ KPI TỔNG QUAN */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px', marginBottom: '30px' }}>
-                <div style={kpiCardStyle}>
-                    <div style={{ fontSize: '13px', color: '#aaa', marginBottom: '6px' }}>👥 Tổng Thành Viên</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1890ff' }}>
-                        {loadingStats ? '...' : (stats?.users?.total_users || 0)}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#777', marginTop: '6px' }}>
-                        {stats?.users?.total_buyers || 0} Khách • {stats?.users?.total_sellers || 0} Quán • {stats?.users?.total_admins || 0} Admin
-                    </div>
-                </div>
-
-                <div style={kpiCardStyle}>
-                    <div style={{ fontSize: '13px', color: '#aaa', marginBottom: '6px' }}>🏪 Quán Đối Tác Mở Cửa</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#52c41a' }}>
-                        {loadingStats ? '...' : (stats?.shops?.open_shops || 0)}
-                        <span style={{ fontSize: '16px', color: '#888', fontWeight: 'normal' }}> / {stats?.shops?.total_shops || 0} quán</span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#777', marginTop: '6px' }}>
-                        Sẵn sàng phục vụ khách hàng
-                    </div>
-                </div>
-
-                <div style={kpiCardStyle}>
-                    <div style={{ fontSize: '13px', color: '#aaa', marginBottom: '6px' }}>🎟️ Voucher Đang Hoạt Động</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#fa8c16' }}>
-                        {loadingStats ? '...' : (stats?.vouchers?.active_vouchers || 0)}
-                        <span style={{ fontSize: '16px', color: '#888', fontWeight: 'normal' }}> / {stats?.vouchers?.total_vouchers || 0}</span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#777', marginTop: '6px' }}>
-                        Độc quyền phát hành bởi Admin
-                    </div>
-                </div>
-
-                <div style={kpiCardStyle}>
-                    <div style={{ fontSize: '13px', color: '#aaa', marginBottom: '6px' }}>💰 Doanh Thu & Đơn Hàng</div>
-                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#eb2f96' }}>
-                        {loadingStats ? '...' : Number(stats?.orders?.total_revenue || 0).toLocaleString('vi-VN')}đ
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#777', marginTop: '6px' }}>
-                        Từ {stats?.orders?.total_orders || 0} đơn hàng toàn sàn
-                    </div>
-                </div>
-            </div>
-
-            {/* TAB NAVIGATION CHÍNH */}
-            <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #333', marginBottom: '25px', overflowX: 'auto', paddingBottom: '2px' }}>
-                <button
-                    onClick={() => setActiveTab('users')}
-                    style={tabBtnStyle(activeTab === 'users')}
-                >
-                    👥 Quản Lý Người Dùng & Phân Quyền
-                    <span style={badgeCountStyle}>{users.length}</span>
-                </button>
-                <button
-                    onClick={() => setActiveTab('vouchers')}
-                    style={tabBtnStyle(activeTab === 'vouchers')}
-                >
-                    🎟️ Độc Quyền Phát Hành Voucher
-                    <span style={badgeCountStyle}>{vouchers.length}</span>
-                </button>
-                <button
-                    onClick={() => setActiveTab('appeals')}
-                    style={tabBtnStyle(activeTab === 'appeals')}
-                >
-                    📬 Xử Lý Khiếu Nại & Minh Oan
-                    {appeals.filter(a => a.status === 'pending').length > 0 ? (
-                        <span style={{ ...badgeCountStyle, backgroundColor: '#ff4d4f', color: '#fff' }}>
-                            {appeals.filter(a => a.status === 'pending').length} chờ duyệt
+            {/* BỐ CỤC 2 CỘT: CỘT MENU BÊN TRÁI (SIDEBAR) & CỘT NỘI DUNG BÊN PHẢI (MAIN CONTENT) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '270px 1fr', gap: '24px', alignItems: 'start' }}>
+                
+                {/* CỘT MENU BÊN TRÁI (LEFT SIDEBAR) */}
+                <aside style={{
+                    background: '#1c1f26',
+                    borderRadius: '12px',
+                    border: '1px solid #2d333f',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px',
+                    position: 'sticky',
+                    top: '110px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.25)'
+                }}>
+                    {/* Thẻ Admin */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '16px', borderBottom: '1px solid #2d333f' }}>
+                        <div style={{ 
+                            width: '64px', 
+                            height: '64px', 
+                            borderRadius: '50%', 
+                            background: 'linear-gradient(135deg, #722ed1 0%, #eb2f96 100%)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            fontSize: '22px',
+                            marginBottom: '12px',
+                            boxShadow: '0 4px 14px rgba(114, 46, 209, 0.4)'
+                        }}>
+                            {(currentUser?.full_name || currentUser?.email || 'A').charAt(0).toUpperCase()}
+                        </div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 'bold', color: '#fff', maxWidth: '230px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentUser?.full_name || 'Quản Trị Viên'}
+                        </h3>
+                        <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', maxWidth: '230px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentUser?.email}
+                        </div>
+                        <span style={{ fontSize: '11px', background: 'rgba(114, 46, 209, 0.2)', color: '#d3adf7', border: '1px solid rgba(114, 46, 209, 0.4)', padding: '2px 10px', borderRadius: '12px', fontWeight: 'bold' }}>
+                            Admin-Panel
                         </span>
-                    ) : (
-                        <span style={badgeCountStyle}>{appeals.length}</span>
-                    )}
-                </button>
-            </div>
+                    </div>
+
+                    {/* Danh sách mục điều hướng dọc */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.6px', padding: '0 8px 4px' }}>
+                            Quản lý hệ thống
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('users')}
+                            style={adminSidebarNavStyle(activeTab === 'users')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <UsersIcon size={16} color={activeTab === 'users' ? '#eb2f96' : '#9ca3af'} />
+                                <span>Người Dùng & Quyền</span>
+                            </div>
+                            <span style={adminSidebarBadgeStyle(activeTab === 'users')}>
+                                {users.filter(u => u.email !== 'admin@mbite.com' && Number(u.id) !== 0).length}
+                            </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('vouchers')}
+                            style={adminSidebarNavStyle(activeTab === 'vouchers')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <TicketIcon size={16} color={activeTab === 'vouchers' ? '#eb2f96' : '#9ca3af'} />
+                                <span>Phát Hành Voucher</span>
+                            </div>
+                            <span style={adminSidebarBadgeStyle(activeTab === 'vouchers')}>
+                                {vouchers.length}
+                            </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('appeals')}
+                            style={adminSidebarNavStyle(activeTab === 'appeals')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <InboxIcon size={16} color={activeTab === 'appeals' ? '#eb2f96' : '#9ca3af'} />
+                                <span>Phản Hồi Người Dùng</span>
+                            </div>
+                            {appeals.filter(a => a.status === 'pending').length > 0 ? (
+                                <span style={{
+                                    background: '#ff4d4f',
+                                    color: '#fff',
+                                    fontSize: '10px',
+                                    fontWeight: 'bold',
+                                    padding: '1px 6px',
+                                    borderRadius: '10px',
+                                    boxShadow: '0 2px 6px rgba(255, 77, 79, 0.4)'
+                                }}>
+                                    {appeals.filter(a => a.status === 'pending').length} chờ
+                                </span>
+                            ) : (
+                                <span style={adminSidebarBadgeStyle(activeTab === 'appeals')}>
+                                    {appeals.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
+                    {/* Chân sidebar */}
+                    <div style={{ paddingTop: '14px', borderTop: '1px solid #2d333f', textAlign: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#666' }}>
+                            M-Bite Platform v2.0
+                        </span>
+                    </div>
+                </aside>
+
+                {/* CỘT NỘI DUNG CHÍNH BÊN PHẢI (MAIN CONTENT) */}
+                <div style={{ minWidth: 0 }}>
+                    
+                    {/* CÁC THẺ THỐNG KÊ KPI TỔNG QUAN */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                        <div style={kpiCardStyle}>
+                            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <UsersIcon size={16} color="#1890ff" />
+                                <span>Tổng Thành Viên</span>
+                            </div>
+                            <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#1890ff' }}>
+                                {loadingStats ? '...' : (stats?.users?.total_users || 0)}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                                {stats?.users?.total_buyers || 0} Khách • {stats?.users?.total_sellers || 0} Quán • {stats?.users?.total_admins || 0} Admin
+                            </div>
+                        </div>
+
+                        <div style={kpiCardStyle}>
+                            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <StoreIcon size={16} color="#52c41a" />
+                                <span>Quán Đối Tác Mở Cửa</span>
+                            </div>
+                            <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#52c41a' }}>
+                                {loadingStats ? '...' : (stats?.shops?.open_shops || 0)}
+                                <span style={{ fontSize: '15px', color: '#6b7280', fontWeight: 'normal' }}> / {stats?.shops?.total_shops || 0} quán</span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                                Sẵn sàng phục vụ khách hàng
+                            </div>
+                        </div>
+
+                        <div style={kpiCardStyle}>
+                            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <TicketIcon size={16} color="#fa8c16" />
+                                <span>Voucher Đang Chạy</span>
+                            </div>
+                            <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#fa8c16' }}>
+                                {loadingStats ? '...' : (stats?.vouchers?.active_vouchers || 0)}
+                                <span style={{ fontSize: '15px', color: '#6b7280', fontWeight: 'normal' }}> / {stats?.vouchers?.total_vouchers || 0}</span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                                Độc quyền phát hành bởi Admin
+                            </div>
+                        </div>
+
+                        <div style={kpiCardStyle}>
+                            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <RevenueIcon size={16} color="#eb2f96" />
+                                <span>Doanh Thu Toàn Sàn</span>
+                            </div>
+                            <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#eb2f96' }}>
+                                {loadingStats ? '...' : Number(stats?.orders?.total_revenue || 0).toLocaleString('vi-VN')}đ
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                                Từ {stats?.orders?.total_orders || 0} đơn hàng thành công
+                            </div>
+                        </div>
+                    </div>
 
             {/* ========================================================================= */}
             {/* NỘI DUNG TAB 1: QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN */}
@@ -563,7 +783,7 @@ export default function Admin({ currentUser }) {
                         <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '280px' }}>
                             <input
                                 type="text"
-                                placeholder="🔍 Tìm theo email, họ tên, SĐT, tên quán..."
+                                placeholder="Tìm theo email, họ tên, SĐT, tên quán..."
                                 value={userSearch}
                                 onChange={e => setUserSearch(e.target.value)}
                                 style={filterInputStyle}
@@ -577,7 +797,7 @@ export default function Admin({ currentUser }) {
                                 style={selectFilterStyle}
                             >
                                 <option value="all">Tất cả vai trò</option>
-                                <option value="user">Người mua (Buyer)</option>
+                                <option value="user">Khách hàng (Buyer)</option>
                                 <option value="seller">Chủ quán (Seller)</option>
                                 <option value="admin">Quản trị viên (Admin)</option>
                             </select>
@@ -588,8 +808,8 @@ export default function Admin({ currentUser }) {
                                 style={selectFilterStyle}
                             >
                                 <option value="all">Tất cả trạng thái</option>
-                                <option value="active">🟢 Đang hoạt động</option>
-                                <option value="blocked">🔴 Đang bị khóa</option>
+                                <option value="active">Đang hoạt động</option>
+                                <option value="blocked">Đang bị khóa</option>
                             </select>
 
                             <button
@@ -601,11 +821,14 @@ export default function Admin({ currentUser }) {
                                     border: '1px solid #555',
                                     borderRadius: '6px',
                                     cursor: 'pointer',
-                                    fontSize: '13px'
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
                                 }}
                                 title="Tải lại danh sách"
                             >
-                                🔄 Làm mới
+                                <RefreshIcon size={13} /> Làm mới
                             </button>
                         </div>
                     </div>
@@ -613,7 +836,7 @@ export default function Admin({ currentUser }) {
                     {/* BẢNG DANH SÁCH NGƯỜI DÙNG */}
                     {loadingUsers ? (
                         <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888' }}>
-                            ⏳ Đang tải danh sách người dùng...
+                            Đang tải danh sách người dùng...
                         </div>
                     ) : filteredUsers.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888', background: '#222', borderRadius: '8px' }}>
@@ -654,23 +877,34 @@ export default function Admin({ currentUser }) {
                                                             {user.full_name || 'Chưa đặt tên'}
                                                         </div>
                                                         <div style={{ fontSize: '11px', color: '#888' }}>
-                                                            ID: #{user.id} • Ngày tạo: {user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : 'Mới'}
+                                                            ID: #{user.email === 'admin@mbite.com' || user.role === 'admin' ? 0 : user.id} • Ngày tạo: {user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : 'Mới'}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
 
                                             <td style={{ padding: '14px 16px' }}>
-                                                <div style={{ color: '#ccc' }}>✉️ {user.email}</div>
-                                                <div style={{ fontSize: '12px', color: '#888', marginTop: '3px' }}>📞 {user.phone || 'Chưa cập nhật'}</div>
+                                                <div style={{ color: '#ccc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <MailIcon size={13} color="#888" /> {user.email}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#888', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <PhoneIcon size={13} color="#888" /> {user.phone || 'Chưa cập nhật'}
+                                                </div>
                                             </td>
 
                                             <td style={{ padding: '14px 16px' }}>
                                                 {user.role === 'seller' ? (
                                                     <div>
-                                                        <div style={{ fontWeight: 'bold', color: '#fa8c16' }}>🏪 {user.shop_name || 'Chưa đặt tên quán'}</div>
-                                                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
-                                                            🏷 {user.shop_category || 'Đồ ăn'} • {user.is_open ? '🟢 Mở cửa' : '🔴 Đóng cửa'}
+                                                        <div style={{ fontWeight: 'bold', color: '#fa8c16', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <StoreIcon size={14} color="#fa8c16" /> {user.shop_name || 'Chưa đặt tên quán'}
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span>{user.shop_category || 'Đồ ăn'}</span>
+                                                            <span>•</span>
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: user.is_open ? '#52c41a' : '#ff4d4f' }}>
+                                                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: user.is_open ? '#52c41a' : '#ff4d4f' }} />
+                                                                {user.is_open ? 'Mở cửa' : 'Đóng cửa'}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -681,26 +915,30 @@ export default function Admin({ currentUser }) {
                                             <td style={{ padding: '14px 16px' }}>
                                                 <select
                                                     value={user.role}
-                                                    disabled={actionLoadingId === user.id || user.id === currentUser?.id}
+                                                    disabled={actionLoadingId === user.id || user.id === currentUser?.id || Number(user.id) === 0 || user.email === 'admin@mbite.com'}
                                                     onChange={(e) => handleChangeRole(user.id, e.target.value, user.email)}
                                                     style={{
                                                         padding: '6px 10px',
                                                         borderRadius: '6px',
                                                         fontSize: '12px',
                                                         fontWeight: 'bold',
-                                                        cursor: user.id === currentUser?.id ? 'not-allowed' : 'pointer',
+                                                        cursor: (user.id === currentUser?.id || Number(user.id) === 0 || user.email === 'admin@mbite.com') ? 'not-allowed' : 'pointer',
                                                         background: user.role === 'admin' ? '#722ed1' : user.role === 'seller' ? '#d46b08' : '#1f3d68',
                                                         color: '#fff',
                                                         border: '1px solid rgba(255,255,255,0.2)'
                                                     }}
                                                 >
-                                                    <option value="user" style={{ background: '#222', color: '#fff' }}>👤 Khách hàng (Buyer)</option>
-                                                    <option value="seller" style={{ background: '#222', color: '#fff' }}>🏪 Chủ quán (Seller)</option>
-                                                    <option value="admin" style={{ background: '#222', color: '#fff' }}>🛡️ Quản trị viên (Admin)</option>
+                                                    <option value="user" style={{ background: '#222', color: '#fff' }}>Khách hàng (Buyer)</option>
+                                                    <option value="seller" style={{ background: '#222', color: '#fff' }}>Chủ quán (Seller)</option>
+                                                    <option value="admin" style={{ background: '#222', color: '#fff' }}>Quản trị viên (Admin)</option>
                                                 </select>
-                                                {user.id === currentUser?.id && (
+                                                {(Number(user.id) === 0 || user.email === 'admin@mbite.com') ? (
+                                                    <div style={{ fontSize: '10px', color: '#b37feb', marginTop: '4px' }}>(Tài khoản Quản trị tối cao)</div>
+                                                ) : user.role === 'admin' ? (
+                                                    <div style={{ fontSize: '10px', color: '#b37feb', marginTop: '4px' }}>(Được nâng quyền Admin)</div>
+                                                ) : user.id === currentUser?.id ? (
                                                     <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>(Tài khoản của bạn)</div>
-                                                )}
+                                                ) : null}
                                             </td>
 
                                             <td style={{ padding: '14px 16px' }}>
@@ -708,9 +946,11 @@ export default function Admin({ currentUser }) {
                                                     <div>
                                                         <span style={{ 
                                                             background: '#ff4d4f22', color: '#ff4d4f', border: '1px solid #ff4d4f', 
-                                                            padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' 
+                                                            padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold',
+                                                            display: 'inline-flex', alignItems: 'center', gap: '5px'
                                                         }}>
-                                                            🔴 ĐÃ KHÓA
+                                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff4d4f' }} />
+                                                            ĐÃ KHÓA
                                                         </span>
                                                         {user.ban_reason && (
                                                             <div style={{ fontSize: '11px', color: '#ff7875', marginTop: '5px', maxWidth: '180px', lineHeight: '1.3' }}>
@@ -721,15 +961,47 @@ export default function Admin({ currentUser }) {
                                                 ) : (
                                                     <span style={{ 
                                                         background: '#52c41a22', color: '#52c41a', border: '1px solid #52c41a', 
-                                                        padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' 
+                                                        padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '5px'
                                                     }}>
-                                                        🟢 HOẠT ĐỘNG
+                                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#52c41a' }} />
+                                                        HOẠT ĐỘNG
                                                     </span>
                                                 )}
                                             </td>
 
                                             <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                                                {user.id !== currentUser?.id && (
+                                                {(Number(user.id) === 0 || user.email === 'admin@mbite.com') ? (
+                                                    <span style={{ 
+                                                        fontSize: '11px', 
+                                                        color: '#888', 
+                                                        background: 'rgba(255,255,255,0.05)', 
+                                                        padding: '4px 10px', 
+                                                        borderRadius: '4px', 
+                                                        border: '1px solid #333', 
+                                                        fontStyle: 'italic',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}>
+                                                        Tối cao (Không thể khóa)
+                                                    </span>
+                                                ) : user.id === currentUser?.id ? (
+                                                    <span style={{ 
+                                                        fontSize: '11px', 
+                                                        color: '#888', 
+                                                        background: 'rgba(255,255,255,0.05)', 
+                                                        padding: '4px 10px', 
+                                                        borderRadius: '4px', 
+                                                        border: '1px solid #333', 
+                                                        fontStyle: 'italic',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}>
+                                                        Tài khoản của bạn
+                                                    </span>
+                                                ) : (
                                                     <button
                                                         onClick={() => handleToggleBlock(user.id, user.is_blocked, user.email, user.full_name)}
                                                         disabled={actionLoadingId === user.id}
@@ -742,10 +1014,21 @@ export default function Admin({ currentUser }) {
                                                             fontWeight: 'bold',
                                                             background: user.is_blocked ? '#52c41a' : '#ff4d4f',
                                                             color: '#fff',
-                                                            transition: 'opacity 0.2s'
+                                                            transition: 'opacity 0.2s',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '5px'
                                                         }}
                                                     >
-                                                        {user.is_blocked ? '🔓 Mở khóa' : '🔒 Khóa tài khoản'}
+                                                        {user.is_blocked ? (
+                                                            <>
+                                                                <UnlockIcon size={13} /> Mở khóa
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <LockIcon size={13} /> Khóa tài khoản
+                                                            </>
+                                                        )}
                                                     </button>
                                                 )}
                                             </td>
@@ -789,13 +1072,13 @@ export default function Admin({ currentUser }) {
                                 boxShadow: '0 4px 12px rgba(238, 77, 45, 0.4)'
                             }}
                         >
-                            ➕ Phát Hành Voucher Mới
+                            <PlusIcon size={16} /> Phát Hành Voucher Mới
                         </button>
                     </div>
 
                     {loadingVouchers ? (
                         <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888' }}>
-                            ⏳ Đang tải danh sách voucher...
+                            Đang tải danh sách voucher...
                         </div>
                     ) : vouchers.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '60px 20px', background: '#222', borderRadius: '8px', color: '#888' }}>
@@ -852,27 +1135,30 @@ export default function Admin({ currentUser }) {
                                             }}
                                             title="Bật/Tắt kích hoạt"
                                         >
-                                            {v.is_active ? '🟢 ĐANG BẬT' : '⏸ TẠM DỪNG'}
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: v.is_active ? '#52c41a' : '#faad14' }} />
+                                                {v.is_active ? 'ĐANG BẬT' : 'TẠM DỪNG'}
+                                            </span>
                                         </button>
                                     </div>
 
-                                    <div style={{ background: '#1a1a1a', padding: '10px 12px', borderRadius: '6px', fontSize: '12px', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <div style={{ background: '#1a1a1a', padding: '10px 12px', borderRadius: '6px', fontSize: '12px', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         <div style={{ color: '#ccc' }}>
-                                            💵 Mức giảm: <strong style={{ color: '#52c41a' }}>
+                                            Mức giảm: <strong style={{ color: '#52c41a' }}>
                                                 {v.discount_type === 'percent' 
                                                     ? `${v.discount_value}% (Tối đa ${Number(v.max_discount).toLocaleString('vi-VN')}đ)` 
                                                     : `${Number(v.discount_value).toLocaleString('vi-VN')}đ`}
                                             </strong>
                                         </div>
                                         <div style={{ color: '#aaa' }}>
-                                            📦 Đơn tối thiểu: <strong>{Number(v.min_order).toLocaleString('vi-VN')}đ</strong>
+                                            Đơn tối thiểu: <strong>{Number(v.min_order).toLocaleString('vi-VN')}đ</strong>
                                         </div>
                                         <div style={{ color: '#aaa' }}>
-                                            📊 Đã dùng: <strong>{v.used_count || 0} / {v.usage_limit || '∞'} lượt</strong>
+                                            Đã dùng: <strong>{v.used_count || 0} / {v.usage_limit || '∞'} lượt</strong>
                                         </div>
                                         {v.expires_at && (
                                             <div style={{ color: '#fa8c16' }}>
-                                                ⏳ Hạn dùng: {new Date(v.expires_at).toLocaleDateString('vi-VN')}
+                                                Hạn dùng: {new Date(v.expires_at).toLocaleDateString('vi-VN')}
                                             </div>
                                         )}
                                     </div>
@@ -887,10 +1173,13 @@ export default function Admin({ currentUser }) {
                                                 border: '1px solid #555',
                                                 borderRadius: '4px',
                                                 cursor: 'pointer',
-                                                fontSize: '12px'
+                                                fontSize: '12px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px'
                                             }}
                                         >
-                                            ✏️ Sửa
+                                            <EditIcon size={12} /> Sửa
                                         </button>
                                         <button
                                             onClick={() => handleDeleteVoucher(v.id, v.code)}
@@ -901,10 +1190,13 @@ export default function Admin({ currentUser }) {
                                                 border: '1px solid #ff4d4f',
                                                 borderRadius: '4px',
                                                 cursor: 'pointer',
-                                                fontSize: '12px'
+                                                fontSize: '12px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px'
                                             }}
                                         >
-                                            🗑️ Xóa
+                                            <TrashIcon size={12} /> Xóa
                                         </button>
                                     </div>
                                 </div>
@@ -916,8 +1208,16 @@ export default function Admin({ currentUser }) {
                     {showVoucherModal && (
                         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
                             <div style={{ background: '#222', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '520px', border: '1px solid #444', maxHeight: '90vh', overflowY: 'auto' }}>
-                                <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#ee4d2d' }}>
-                                    {editingVoucher ? `✏️ Chỉnh Sửa Voucher [${editingVoucher.code}]` : '➕ Phát Hành Voucher Mới'}
+                                <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#ee4d2d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {editingVoucher ? (
+                                        <>
+                                            <EditIcon size={16} /> Chỉnh Sửa Voucher [{editingVoucher.code}]
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PlusIcon size={16} /> Phát Hành Voucher Mới
+                                        </>
+                                    )}
                                 </h3>
 
                                 <form onSubmit={handleSaveVoucher} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1054,11 +1354,11 @@ export default function Admin({ currentUser }) {
             )}
 
             {/* ========================================================================= */}
-            {/* NỘI DUNG TAB 3: XỬ LÝ KHIẾU NẠI & MINH OAN (BAN APPEALS) */}
+            {/* NỘI DUNG TAB 3: HỘP THƯ PHẢN HỒI NGƯỜI DÙNG */}
             {/* ========================================================================= */}
             {activeTab === 'appeals' && (
                 <div>
-                    {/* BỘ LỌC KHIẾU NẠI */}
+                    {/* BỘ LỌC PHẢN HỒI */}
                     <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', background: '#222', padding: '16px', borderRadius: '8px', border: '1px solid #333' }}>
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                             <button
@@ -1089,7 +1389,7 @@ export default function Admin({ currentUser }) {
                                     color: appealFilter === 'pending' ? '#000' : '#fff'
                                 }}
                             >
-                                ⏳ Chờ Xét Duyệt ({appeals.filter(a => a.status === 'pending').length})
+                                Chờ Xét Duyệt ({appeals.filter(a => a.status === 'pending').length})
                             </button>
                             <button
                                 onClick={() => setAppealFilter('approved')}
@@ -1104,7 +1404,7 @@ export default function Admin({ currentUser }) {
                                     color: '#fff'
                                 }}
                             >
-                                ✅ Đã Chấp Nhận ({appeals.filter(a => a.status === 'approved').length})
+                                Đã Chấp Nhận ({appeals.filter(a => a.status === 'approved').length})
                             </button>
                             <button
                                 onClick={() => setAppealFilter('rejected')}
@@ -1119,7 +1419,7 @@ export default function Admin({ currentUser }) {
                                     color: '#fff'
                                 }}
                             >
-                                ❌ Đã Từ Chối ({appeals.filter(a => a.status === 'rejected').length})
+                                Đã Từ Chối ({appeals.filter(a => a.status === 'rejected').length})
                             </button>
                         </div>
 
@@ -1132,22 +1432,25 @@ export default function Admin({ currentUser }) {
                                 border: '1px solid #555',
                                 borderRadius: '6px',
                                 cursor: 'pointer',
-                                fontSize: '13px'
+                                fontSize: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
                             }}
-                            title="Tải lại danh sách khiếu nại"
+                            title="Tải lại danh sách phản hồi"
                         >
-                            🔄 Làm mới
+                            <RefreshIcon size={13} /> Làm mới
                         </button>
                     </div>
 
-                    {/* DANH SÁCH CÁC ĐƠN MINH OAN */}
+                    {/* DANH SÁCH CÁC PHẢN HỒI */}
                     {loadingAppeals ? (
                         <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888' }}>
-                            ⏳ Đang tải danh sách khiếu nại...
+                            Đang tải danh sách phản hồi...
                         </div>
                     ) : appeals.filter(a => appealFilter === 'all' || a.status === appealFilter).length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888', background: '#222', borderRadius: '8px', border: '1px solid #333' }}>
-                            Không có đơn khiếu nại / minh oan nào trong mục này.
+                            Không có phản hồi nào trong mục này.
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1164,7 +1467,7 @@ export default function Admin({ currentUser }) {
                                             boxShadow: '0 4px 14px rgba(0,0,0,0.3)'
                                         }}
                                     >
-                                        {/* Header đơn khiếu nại */}
+                                        {/* Header phản hồi */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #333', paddingBottom: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                                 <div style={{
@@ -1174,10 +1477,9 @@ export default function Admin({ currentUser }) {
                                                     backgroundColor: '#333',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '20px'
+                                                    justifyContent: 'center'
                                                 }}>
-                                                    👤
+                                                    <UsersIcon size={20} color="#888" />
                                                 </div>
                                                 <div>
                                                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1204,9 +1506,9 @@ export default function Admin({ currentUser }) {
                                                         border: `1px solid ${appeal.status === 'pending' ? '#faad14' : appeal.status === 'approved' ? '#52c41a' : '#ff4d4f'}`
                                                     }}
                                                 >
-                                                    {appeal.status === 'pending' && '⏳ Chờ xét duyệt'}
-                                                    {appeal.status === 'approved' && '✅ Đã chấp thuận minh oan'}
-                                                    {appeal.status === 'rejected' && '❌ Đã từ chối'}
+                                                    {appeal.status === 'pending' && 'Chờ xét duyệt'}
+                                                    {appeal.status === 'approved' && 'Đã duyệt phản hồi'}
+                                                    {appeal.status === 'rejected' && 'Đã từ chối'}
                                                 </span>
                                                 <div style={{ fontSize: '11px', color: '#777', marginTop: '6px' }}>
                                                     Gửi lúc: {new Date(appeal.created_at).toLocaleString('vi-VN')}
@@ -1214,10 +1516,10 @@ export default function Admin({ currentUser }) {
                                             </div>
                                         </div>
 
-                                        {/* Nội dung giải trình của người dùng */}
+                                        {/* Nội dung phản hồi của người dùng */}
                                         <div style={{ marginBottom: '18px' }}>
                                             <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#bbb', marginBottom: '6px' }}>
-                                                📝 Lời giải trình / Minh oan từ người dùng:
+                                                Nội dung phản hồi từ người dùng:
                                             </div>
                                             <div style={{ background: '#161922', border: '1px solid #30363d', borderRadius: '8px', padding: '14px', color: '#e6edf3', fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                                                 {appeal.appeal_reason}
@@ -1228,7 +1530,7 @@ export default function Admin({ currentUser }) {
                                         {appeal.evidence_info && (
                                             <div style={{ marginBottom: '18px' }}>
                                                 <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#bbb', marginBottom: '4px' }}>
-                                                    🔗 Thông tin xác minh / Bằng chứng bổ sung:
+                                                    Thông tin xác minh / Ghi chú bổ sung:
                                                 </div>
                                                 <div style={{ background: '#161922', border: '1px solid #30363d', borderRadius: '8px', padding: '10px 14px', color: '#58a6ff', fontSize: '13px', wordBreak: 'break-all' }}>
                                                     {appeal.evidence_info}
@@ -1240,13 +1542,13 @@ export default function Admin({ currentUser }) {
                                         {appeal.status === 'pending' ? (
                                             <div style={{ background: '#1a1a1a', border: '1px dashed #555', borderRadius: '8px', padding: '16px', marginTop: '15px' }}>
                                                 <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#eee', marginBottom: '8px' }}>
-                                                    💬 Lời phản hồi / Nhắn gửi của Admin tới người dùng:
+                                                    Lời phản hồi / Nhắn gửi của Admin tới người dùng:
                                                 </div>
                                                 <textarea
                                                     rows={2}
                                                     value={adminResponses[appeal.id] || ''}
                                                     onChange={(e) => setAdminResponses({ ...adminResponses, [appeal.id]: e.target.value })}
-                                                    placeholder="Nhập ghi chú phản hồi (ví dụ: 'Đã xác minh sự cố nhầm lẫn, tài khoản đã được gỡ phạt' hoặc lý do từ chối)..."
+                                                    placeholder="Nhập ghi chú phản hồi (ví dụ: 'Đã xác minh sự cố nhầm lẫn, tài khoản đã được mở lại' hoặc lý do từ chối)..."
                                                     style={{
                                                         width: '100%',
                                                         padding: '10px 12px',
@@ -1274,10 +1576,13 @@ export default function Admin({ currentUser }) {
                                                             cursor: resolvingAppealId === appeal.id ? 'not-allowed' : 'pointer',
                                                             fontSize: '13px',
                                                             fontWeight: 'bold',
-                                                            transition: 'all 0.2s'
+                                                            transition: 'all 0.2s',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px'
                                                         }}
                                                     >
-                                                        ❌ Từ Chối Khiếu Nại
+                                                        <XIcon size={14} /> Từ Chối Phản Hồi
                                                     </button>
                                                     <button
                                                         type="button"
@@ -1293,10 +1598,13 @@ export default function Admin({ currentUser }) {
                                                             fontSize: '13px',
                                                             fontWeight: 'bold',
                                                             boxShadow: '0 2px 8px rgba(82,196,26,0.3)',
-                                                            transition: 'all 0.2s'
+                                                            transition: 'all 0.2s',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px'
                                                         }}
                                                     >
-                                                        ✅ Chấp Thuận & Mở Khóa Tài Khoản
+                                                        <CheckIcon size={14} /> Chấp Thuận & Mở Khóa Tài Khoản
                                                     </button>
                                                 </div>
                                             </div>
@@ -1327,6 +1635,8 @@ export default function Admin({ currentUser }) {
                     )}
                 </div>
             )}
+                </div>
+            </div>
 
             {/* ========================================================================= */}
             {/* MODAL NHẬP LÝ DO KHÓA TÀI KHOẢN (BAN MODAL) */}
@@ -1335,8 +1645,8 @@ export default function Admin({ currentUser }) {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
                     <div style={{ background: '#1c1f26', padding: '26px', borderRadius: '12px', width: '100%', maxWidth: '480px', border: '1px solid #ff4d4f', boxShadow: '0 20px 50px rgba(0,0,0,0.7)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255, 77, 79, 0.2)', border: '1px solid #ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
-                                🔒
+                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255, 77, 79, 0.2)', border: '1px solid #ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <LockIcon size={20} color="#ff4d4f" />
                             </div>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '18px', color: '#ff4d4f' }}>
@@ -1349,7 +1659,7 @@ export default function Admin({ currentUser }) {
                         </div>
 
                         <p style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.5', margin: '0 0 16px 0' }}>
-                            Khi bị khóa, người dùng này sẽ <strong>bị chặn hoàn toàn</strong> mọi tương tác mua hàng, bán hàng, và chỉ có thể truy cập màn hình giải trình minh oan.
+                            Khi bị khóa, người dùng này sẽ <strong>bị chặn hoàn toàn</strong> mọi tương tác mua hàng, bán hàng, và chỉ có thể truy cập màn hình gửi phản hồi.
                         </p>
 
                         <form onSubmit={handleConfirmBanSubmit}>
@@ -1405,7 +1715,7 @@ export default function Admin({ currentUser }) {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
                     <div style={{ background: '#1c1f26', padding: '26px', borderRadius: '12px', width: '100%', maxWidth: '440px', border: '1px solid #444', boxShadow: '0 20px 50px rgba(0,0,0,0.7)' }}>
                         <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            ⚠️ {confirmModal.title}
+                            <AlertIcon size={20} color="#faad14" /> {confirmModal.title}
                         </h3>
                         <p style={{ fontSize: '14px', color: '#ccc', lineHeight: '1.5', margin: '0 0 20px 0' }}>
                             {confirmModal.message}
@@ -1445,20 +1755,49 @@ export default function Admin({ currentUser }) {
 }
 
 const kpiCardStyle = {
-    background: '#222',
-    border: '1px solid #333',
-    borderRadius: '10px',
+    background: '#1c1f26',
+    border: '1px solid #2d333f',
+    borderRadius: '12px',
     padding: '20px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    boxShadow: '0 4px 15px rgba(0,0,0,0.25)',
+    transition: 'transform 0.2s, border-color 0.2s'
 };
 
-const tabBtnStyle = (isActive) => ({
-    padding: '12px 20px',
-    background: isActive ? '#333' : 'transparent',
-    color: isActive ? '#ee4d2d' : '#aaa',
+const adminSidebarNavStyle = (isActive) => ({
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 14px',
+    borderRadius: '8px',
     border: 'none',
-    borderBottom: isActive ? '3px solid #ee4d2d' : '3px solid transparent',
-    borderRadius: '6px 6px 0 0',
+    cursor: 'pointer',
+    background: isActive ? 'linear-gradient(135deg, rgba(114, 46, 209, 0.25) 0%, rgba(235, 47, 150, 0.15) 100%)' : 'transparent',
+    color: isActive ? '#fff' : '#9ca3af',
+    fontWeight: isActive ? 'bold' : '500',
+    fontSize: '13.5px',
+    transition: 'all 0.2s ease',
+    outline: 'none',
+    boxSizing: 'border-box',
+    borderLeft: isActive ? '3px solid #eb2f96' : '3px solid transparent'
+});
+
+const adminSidebarBadgeStyle = (isActive) => ({
+    background: isActive ? 'rgba(235, 47, 150, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+    color: isActive ? '#fff' : '#888',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: 'bold'
+});
+
+const tabBtnStyle = (isActive) => ({
+    padding: '10px 18px',
+    background: isActive ? '#1c1f26' : '#fff',
+    color: isActive ? '#fff' : '#4b5563',
+    border: '1px solid',
+    borderColor: isActive ? '#1c1f26' : '#d1d5db',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: isActive ? 'bold' : '500',
@@ -1466,16 +1805,18 @@ const tabBtnStyle = (isActive) => ({
     alignItems: 'center',
     gap: '8px',
     whiteSpace: 'nowrap',
+    boxShadow: isActive ? '0 3px 8px rgba(0,0,0,0.15)' : '0 1px 2px rgba(0,0,0,0.04)',
     transition: 'all 0.2s'
 });
 
 const badgeCountStyle = {
-    background: '#444',
-    color: '#fff',
+    background: 'rgba(255, 255, 255, 0.25)',
+    color: 'inherit',
     padding: '2px 8px',
-    borderRadius: '10px',
+    borderRadius: '12px',
     fontSize: '11px',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    border: '1px solid rgba(128, 128, 128, 0.2)'
 };
 
 const filterInputStyle = {

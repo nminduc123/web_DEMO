@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { 
+    CartIcon, ShoppingBagIcon, MapPinIcon, EditIcon, PlusIcon, 
+    TrashIcon, FlameIcon, FileTextIcon, TicketIcon, CheckIcon, 
+    CreditCardIcon, BanknoteIcon, ClockIcon 
+} from '../components/Icons';
 
 export default function Checkout({ cart, updateQuantity, removeFromCart, clearCart, updateCartPrices, currentUser, addToCart }) {
     const navigate = useNavigate();
@@ -42,8 +47,12 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
     }, [sellerId]);
 
     // Tải danh sách voucher đang phát hành từ CSDL (do Admin quản lý)
-    useEffect(() => {
-        fetch('http://localhost:5000/api/vouchers/active')
+    // Tự động lọc bỏ các voucher mà tài khoản hiện tại đã từng sử dụng
+    const fetchActiveVouchers = () => {
+        const url = (currentUser && currentUser.id !== undefined && currentUser.id !== null)
+            ? `http://localhost:5000/api/vouchers/active?userId=${currentUser.id}`
+            : 'http://localhost:5000/api/vouchers/active';
+        fetch(url)
             .then(res => res.json())
             .then(data => {
                 if (data.success && Array.isArray(data.vouchers)) {
@@ -51,7 +60,11 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                 }
             })
             .catch(err => console.error("Lỗi tải voucher:", err));
-    }, []);
+    };
+
+    useEffect(() => {
+        fetchActiveVouchers();
+    }, [currentUser]);
 
     // Lọc ra các món chưa có trong giỏ hàng
     const addOnItems = recommendations.filter(item => !cart.some(c => c.id === item.id) && !item.is_sold_out);
@@ -96,7 +109,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
         }
         setAppliedVoucher(voucher);
         setVoucherCodeInput(voucher.code);
-        showToast(`🎉 Áp dụng mã "${voucher.code}" thành công!`, "success");
+        showToast(`Áp dụng mã "${voucher.code}" thành công!`, "success");
     };
 
     const handleRemoveVoucher = () => {
@@ -111,7 +124,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
         if (!cleanCode) return;
         const found = availableVouchers.find(v => v.code === cleanCode);
         if (!found) {
-            showToast("Mã voucher không tồn tại hoặc đã hết hạn!", "error");
+            showToast("Mã voucher không tồn tại, đã hết hạn hoặc bạn đã từng sử dụng mã này rồi!", "error");
             return;
         }
         handleApplyVoucher(found);
@@ -121,7 +134,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
     const handleAddRecommendation = (item) => {
         if (addToCart) {
             addToCart(item, { shop_name: item.shop_name || cart[0]?.shopName });
-            showToast(`✅ Đã thêm "${item.name}" vào giỏ hàng!`, "success");
+            showToast(`Đã thêm "${item.name}" vào giỏ hàng!`, "success");
         }
     };
 
@@ -143,7 +156,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                     hasChange = true;
                     data.unavailableItems.forEach(item => {
                         removeFromCart(item.id);
-                        showToast(`⚠️ "${item.name}": ${item.reason}, đã tự động xóa khỏi giỏ!`, "warning", 5000);
+                        showToast(`"${item.name}": ${item.reason}, đã tự động xóa khỏi giỏ!`, "warning", 5000);
                     });
                 }
 
@@ -155,7 +168,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                     }
                     data.changedItems.forEach(item => {
                         showToast(
-                            `⚠️ Món "${item.name}" vừa được quán cập nhật giá từ ${item.oldPrice.toLocaleString('vi-VN')}đ thành ${item.newPrice.toLocaleString('vi-VN')}đ!`,
+                            `Món "${item.name}" vừa được quán cập nhật giá từ ${item.oldPrice.toLocaleString('vi-VN')}đ thành ${item.newPrice.toLocaleString('vi-VN')}đ!`,
                             "warning",
                             6000
                         );
@@ -242,7 +255,9 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
             if (data.success) {
                 setShowQR(false);
                 clearCart();
-                showToast("🎉 Đặt hàng thành công! Quán đã nhận được đơn và đang chuẩn bị món.", "success", 5000);
+                setAppliedVoucher(null);
+                fetchActiveVouchers();
+                showToast("Đặt hàng thành công! Quán đã nhận được đơn và đang chuẩn bị món.", "success", 5000);
                 navigate('/');
             } else {
                 if (data.priceChanged) {
@@ -250,7 +265,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                         updateCartPrices(data.changedItems);
                     }
                     setShowQR(false);
-                    showToast("⚠️ Giá món ăn đã thay đổi! Giỏ hàng đã được cập nhật giá mới nhất từ quán, vui lòng xác nhận lại đơn.", "warning", 6000);
+                    showToast("Giá món ăn đã thay đổi! Giỏ hàng đã được cập nhật giá mới nhất từ quán, vui lòng xác nhận lại đơn.", "warning", 6000);
                     return;
                 }
 
@@ -271,7 +286,9 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
         return (
             <div style={{ maxWidth: '800px', margin: '60px auto', padding: '0 20px', color: '#fff', textAlign: 'center' }}>
                 <div style={{ padding: '60px 30px', background: '#222', borderRadius: '8px', border: '1px solid #333' }}>
-                    <div style={{ fontSize: '50px', marginBottom: '15px' }}>🛒</div>
+                    <div style={{ marginBottom: '15px' }}>
+                        <CartIcon size={48} color="#888" />
+                    </div>
                     <h2 style={{ margin: '0 0 10px 0', fontSize: '22px' }}>Giỏ hàng của bạn đang trống</h2>
                     <p style={{ color: '#888', marginBottom: '25px', fontSize: '14px' }}>
                         Hãy quay lại danh sách quán để chọn những món ăn thơm ngon nhé!
@@ -300,8 +317,9 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
         <div style={{ maxWidth: '920px', margin: '0 auto', padding: '30px 20px', color: '#fff', fontFamily: 'Arial, sans-serif' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #333', paddingBottom: '15px' }}>
-                <h1 style={{ margin: 0, fontSize: '24px' }}>
-                    🛍️ Giỏ Hàng Của Bạn ({cart.reduce((sum, item) => sum + (item.quantity || 1), 0)} món)
+                <h1 style={{ margin: 0, fontSize: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <ShoppingBagIcon size={26} color="#ee4d2d" />
+                    Giỏ Hàng Của Bạn ({cart.reduce((sum, item) => sum + (item.quantity || 1), 0)} món)
                 </h1>
                 <button
                     onClick={() => navigate('/')}
@@ -333,7 +351,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                 gap: '12px'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '240px' }}>
-                    <span style={{ fontSize: '24px' }}>📍</span>
+                    <MapPinIcon size={24} color="#ee4d2d" />
                     <div>
                         <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>
                             Địa chỉ giao hàng: {currentUser?.full_name ? <span style={{ color: '#ee4d2d' }}>{currentUser.full_name} ({currentUser.phone || 'Chưa có SĐT'})</span> : (currentUser?.email || '')}
@@ -355,12 +373,15 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                         cursor: 'pointer',
                         fontSize: '13px',
                         fontWeight: 'bold',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = '#ee4d2d'; e.currentTarget.style.borderColor = '#ee4d2d'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = '#333'; e.currentTarget.style.borderColor = '#555'; }}
                 >
-                    {currentUser?.address ? '✏️ Đổi địa chỉ' : '➕ Thêm địa chỉ'}
+                    {currentUser?.address ? <><EditIcon size={14} /> Đổi địa chỉ</> : <><PlusIcon size={14} /> Thêm địa chỉ</>}
                 </button>
             </div>
 
@@ -451,10 +472,13 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                                     padding: '6px 12px',
                                     borderRadius: '4px',
                                     cursor: 'pointer',
-                                    fontSize: '13px'
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
                                 }}
                             >
-                                🗑️ Xóa
+                                <TrashIcon size={14} /> Xóa
                             </button>
                         </div>
                     </div>
@@ -475,7 +499,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
                         <div>
                             <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                🔥 Món thường được đặt kèm (Gợi ý cho bạn)
+                                <FlameIcon size={18} color="#ff4d4f" /> Món thường được đặt kèm (Gợi ý cho bạn)
                             </h3>
                             <span style={{ fontSize: '12px', color: '#888' }}>
                                 Khách hàng thường gọi thêm đồ uống hoặc món kèm này khi đặt tại quán
@@ -545,7 +569,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                                         e.currentTarget.style.borderColor = '#555';
                                     }}
                                 >
-                                    ➕ Thêm vào giỏ
+                                    <PlusIcon size={14} /> Thêm vào giỏ
                                 </button>
                             </div>
                         ))}
@@ -559,7 +583,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
             <div style={{ background: '#222', padding: '20px', borderRadius: '8px', border: '1px solid #333', marginBottom: '25px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                     <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        📝 Ghi chú cho quán:
+                        <FileTextIcon size={18} /> Ghi chú cho quán:
                     </h3>
                     <span style={{ fontSize: '12px', color: '#888' }}>
                         {orderNote.length}/200 ký tự
@@ -593,11 +617,11 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
             <div style={{ background: '#222', padding: '20px', borderRadius: '8px', border: '1px solid #333', marginBottom: '25px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        🎟️ Mã Giảm Giá / Voucher M-Bite
+                        <TicketIcon size={18} /> Mã Giảm Giá / Voucher M-Bite
                     </h3>
                     {appliedVoucher && (
-                        <span style={{ fontSize: '12px', color: '#52c41a', background: '#52c41a22', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
-                            ✓ Đang áp dụng {appliedVoucher.code} (-{discountAmount.toLocaleString('vi-VN')}đ)
+                        <span style={{ fontSize: '12px', color: '#52c41a', background: '#52c41a22', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <CheckIcon size={13} /> Đang áp dụng {appliedVoucher.code} (-{discountAmount.toLocaleString('vi-VN')}đ)
                         </span>
                     )}
                 </div>
@@ -712,10 +736,14 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                                                     borderRadius: '4px',
                                                     cursor: 'pointer',
                                                     fontSize: '12px',
-                                                    fontWeight: 'bold'
+                                                    fontWeight: 'bold',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px'
                                                 }}
                                             >
-                                                ✓ Đang dùng (Bấm để hủy)
+                                                <CheckIcon size={12} /> Đang dùng (Bấm để hủy)
                                             </button>
                                         ) : (
                                             <button
@@ -748,8 +776,8 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
 
             {/* CHỌN PHƯƠNG THỨC THANH TOÁN */}
             <div style={{ background: '#222', padding: '20px', borderRadius: '8px', border: '1px solid #333', marginBottom: '25px' }}>
-                <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#fff' }}>
-                    💳 Phương thức thanh toán:
+                <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CreditCardIcon size={18} /> Phương thức thanh toán:
                 </h3>
                 <div style={{ display: 'flex', gap: '25px', flexWrap: 'wrap' }}>
                     <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
@@ -761,7 +789,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                             onChange={() => setPaymentMethod('COD')}
                             style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }}
                         />
-                        💵 Tiền mặt khi nhận hàng (COD)
+                        <BanknoteIcon size={16} color="#aaa" /> Tiền mặt khi nhận hàng (COD)
                     </label>
 
                     <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
@@ -773,7 +801,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                             onChange={() => setPaymentMethod('CK')}
                             style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }}
                         />
-                        📱 Chuyển khoản QR ngân hàng (VietQR)
+                        <CreditCardIcon size={16} color="#aaa" /> Chuyển khoản QR ngân hàng (VietQR)
                     </label>
                 </div>
             </div>
@@ -827,7 +855,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                             transition: 'background 0.2s'
                         }}
                     >
-                        {isSubmitting ? 'Đang xử lý...' : 'Tiến Hành Đặt Hàng ➔'}
+                        {isSubmitting ? 'Đang xử lý...' : 'Tiến Hành Đặt Hàng →'}
                     </button>
                 </div>
             </div>
@@ -858,8 +886,8 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                     }}>
                         <h3 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '20px' }}>Quét mã để thanh toán</h3>
                         
-                        <p style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '22px', margin: '8px 0' }}>
-                            ⏳ {formatTime(timeLeft)}
+                        <p style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '22px', margin: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <ClockIcon size={20} /> {formatTime(timeLeft)}
                         </p>
                         
                         <p style={{ fontSize: '13px', color: '#aaa', margin: '0 0 15px 0' }}>
@@ -889,9 +917,9 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
                             <button
                                 onClick={handlePlaceOrder}
                                 disabled={isSubmitting}
-                                style={{ flex: 1.5, padding: '10px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+                                style={{ flex: 1.5, padding: '10px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                             >
-                                {isSubmitting ? 'Đang gửi...' : '✅ Đã Chuyển Tiền'}
+                                {isSubmitting ? 'Đang gửi...' : <><CheckIcon size={16} /> Đã Chuyển Tiền</>}
                             </button>
                         </div>
                     </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SearchIcon, TagIcon, MapPinIcon, UtensilsIcon, XIcon, TicketIcon, CheckCircleIcon } from '../components/Icons';
+import { useToast } from '../context/ToastContext';
 
 export default function Home({ 
     currentUser, 
@@ -8,31 +10,72 @@ export default function Home({
     searchKeyword = '',
     setSearchKeyword
 }) {
+    const { showToast } = useToast();
     const [shops, setShops] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [searchInput, setSearchInput] = useState(searchKeyword || '');
+    const [vouchers, setVouchers] = useState([]);
+    const [isVoucherLoading, setIsVoucherLoading] = useState(false);
+    const [savingVoucherId, setSavingVoucherId] = useState(null);
     const navigate = useNavigate();
 
-    // Đồng bộ searchInput khi searchKeyword thay đổi từ bên ngoài
-    useEffect(() => {
-        setSearchInput(searchKeyword || '');
-    }, [searchKeyword]);
-
-    const handleSearchSubmit = () => {
-        if (setSearchKeyword) {
-            setSearchKeyword(searchInput.trim());
-        }
+    // Tải danh sách voucher phát hành công khai khi vào danh mục 'Voucher'
+    const fetchPublicVouchers = () => {
+        setIsVoucherLoading(true);
+        const url = currentUser?.id 
+            ? `http://localhost:5000/api/vouchers/public?userId=${currentUser.id}`
+            : 'http://localhost:5000/api/vouchers/public';
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.vouchers)) {
+                    setVouchers(data.vouchers);
+                }
+            })
+            .catch(err => console.error("Lỗi lấy danh sách voucher:", err))
+            .finally(() => setIsVoucherLoading(false));
     };
 
-    const handleClearSearch = () => {
-        setSearchInput('');
-        if (setSearchKeyword) setSearchKeyword('');
+    useEffect(() => {
+        if (selectedCategory === 'Voucher') {
+            fetchPublicVouchers();
+        }
+    }, [selectedCategory, currentUser]);
+
+    // Xử lý người dùng bấm lưu voucher vào ví
+    const handleSaveVoucher = async (voucherId) => {
+        if (!currentUser) {
+            localStorage.setItem('redirect_to', '/');
+            navigate('/login');
+            return;
+        }
+        setSavingVoucherId(voucherId);
+        try {
+            const res = await fetch('http://localhost:5000/api/user/save-voucher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: currentUser.id,
+                    voucherId: voucherId
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || "Đã lưu voucher vào ví thành công!", "success");
+                setVouchers(prev => prev.map(v => v.id === voucherId ? { ...v, isSaved: true } : v));
+            } else {
+                showToast(data.message || "Không thể lưu voucher!", "error");
+            }
+        } catch (error) {
+            console.error("Lỗi lưu voucher:", error);
+            showToast("Lỗi kết nối máy chủ!", "error");
+        } finally {
+            setSavingVoucherId(null);
+        }
     };
 
     // Hàm kiểm tra đăng nhập trước khi cho phép vào xem quán
     const handleShopClick = (shopId) => {
         if (!currentUser) {
-            // Lưu lại id quán muốn vào để sau khi đăng nhập xong tự động quay lại
             localStorage.setItem('redirect_shop_id', shopId);
             navigate('/login');
         } else {
@@ -92,101 +135,34 @@ export default function Home({
             }}>
                 <div style={{ 
                     width: '100%',
-                    maxWidth: '800px', 
+                    maxWidth: selectedCategory === 'Voucher' ? '960px' : '800px', 
                     background: '#1c1c1c', 
                     borderRadius: '8px', 
                     padding: '20px',
-                    maxHeight: '600px', 
+                    maxHeight: '650px', 
                     overflowY: 'auto',
                     border: '1px solid #333',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+                    transition: 'max-width 0.3s ease'
                 }}>
-                    {/* THANH TÌM KIẾM TRỰC TIẾP TRÊN NỀN DYNAMIC (NGAY TRÊN DÒNG KẾT QUẢ TÌM KIẾM) */}
-                    <div style={{ marginBottom: '18px' }}>
-                        <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            background: '#242424', 
-                            borderRadius: '8px', 
-                            border: '1px solid #444', 
-                            padding: '4px 6px 4px 14px',
-                            gap: '10px',
-                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4)',
-                            transition: 'border-color 0.2s'
-                        }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ee4d2d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ minWidth: '18px' }}>
-                                <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input 
-                                type="text"
-                                placeholder="Tìm kiếm quán ăn, món ăn, thực đơn..."
-                                value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleSearchSubmit();
-                                }}
-                                style={{
-                                    flex: 1,
-                                    background: 'transparent',
-                                    border: 'none',
-                                    outline: 'none',
-                                    color: '#fff',
-                                    fontSize: '14px',
-                                    padding: '8px 0'
-                                }}
-                            />
-                            {searchInput && (
-                                <button
-                                    type="button"
-                                    onClick={handleClearSearch}
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: '#888',
-                                        cursor: 'pointer',
-                                        padding: '6px',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: '50%'
-                                    }}
-                                    title="Xóa tìm kiếm"
-                                >
-                                    ✕
-                                </button>
-                            )}
-                            <button
-                                type="button"
-                                onClick={handleSearchSubmit}
-                                style={{
-                                    background: '#ee4d2d',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    padding: '8px 18px',
-                                    fontWeight: 'bold',
-                                    fontSize: '13px',
-                                    cursor: 'pointer',
-                                    transition: 'background 0.2s',
-                                    whiteSpace: 'nowrap'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#d73a1c'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#ee4d2d'}
-                            >
-                                Tìm kiếm
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* DÒNG KẾT QUẢ TÌM KIẾM CHO / DANH SÁCH QUÁN ĂN */}
+                    {/* DÒNG TIÊU ĐỀ: DANH MỤC / KẾT QUẢ TÌM KIẾM / SĂN VOUCHER */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 20px 0', borderBottom: '1px solid #333', paddingBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
                         <h3 style={{ color: '#fff', margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             {searchKeyword ? (
                                 <>
-                                    <span>🔍 Kết quả tìm kiếm cho: <strong style={{ color: '#ee4d2d' }}>"{searchKeyword}"</strong></span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><SearchIcon size={16} /> Kết quả tìm kiếm cho: <strong style={{ color: '#ee4d2d' }}>"{searchKeyword}"</strong></span>
                                     <span style={{ fontSize: '14px', color: '#888', fontWeight: 'normal' }}>
                                         ({displayedShops.length} quán phù hợp)
+                                    </span>
+                                </>
+                            ) : selectedCategory === 'Voucher' ? (
+                                <>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                        <TicketIcon size={20} color="#ee4d2d" />
+                                        <span>Săn Voucher Ưu Đãi M-Bite</span>
+                                    </span>
+                                    <span style={{ fontSize: '14px', color: '#888', fontWeight: 'normal', marginLeft: '6px' }}>
+                                        ({vouchers.length} mã đang phát hành)
                                     </span>
                                 </>
                             ) : (
@@ -203,7 +179,6 @@ export default function Home({
                                 onClick={() => {
                                     if (setSearchKeyword) setSearchKeyword('');
                                     if (setSelectedCategory) setSelectedCategory('Tất cả');
-                                    setSearchInput('');
                                 }}
                                 style={{ 
                                     background: '#333', 
@@ -218,15 +193,211 @@ export default function Home({
                                     gap: '6px'
                                 }}
                             >
-                                ✕ Xem tất cả quán
+                                <XIcon size={12} /> Xem tất cả quán
                             </button>
                         )}
                     </div>
 
+                    {/* NỘI DUNG: TAB VOUCHER HOẶC DANH SÁCH QUÁN ĂN */}
+                    {selectedCategory === 'Voucher' ? (
+                        <div>
+                            {isVoucherLoading ? (
+                                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#888' }}>
+                                    Đang tải danh sách voucher ưu đãi...
+                                </div>
+                            ) : vouchers.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#888' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+                                        <TicketIcon size={48} color="#555" />
+                                    </div>
+                                    <p style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#fff' }}>Hiện tại chưa có voucher ưu đãi nào được phát hành.</p>
+                                    <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>Quản trị viên sẽ sớm phát hành các voucher ưu đãi hấp dẫn. Quý khách vui lòng quay lại sau!</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+                                    {vouchers.map(v => {
+                                        const minOrder = Number(v.min_order) || 0;
+                                        const maxDiscount = Number(v.max_discount) || 0;
+                                        const isSaving = savingVoucherId === v.id;
+                                        const isLimitReached = v.usage_limit > 0 && v.used_count >= v.usage_limit;
+
+                                        return (
+                                            <div
+                                                key={v.id}
+                                                style={{
+                                                    background: '#242424',
+                                                    border: v.isSaved ? '1px solid #52c41a55' : '1px solid #383838',
+                                                    borderRadius: '8px',
+                                                    padding: '16px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    justifyContent: 'space-between',
+                                                    position: 'relative',
+                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                                }}
+                                            >
+                                                {/* Dải màu nhận diện cạnh trái */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    left: 0,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    width: '4px',
+                                                    borderTopLeftRadius: '8px',
+                                                    borderBottomLeftRadius: '8px',
+                                                    background: v.isUsed ? '#555' : v.isSaved ? '#52c41a' : '#ee4d2d'
+                                                }} />
+
+                                                <div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                        <span style={{ 
+                                                            fontSize: '13px', 
+                                                            fontWeight: 'bold', 
+                                                            color: '#ee4d2d', 
+                                                            background: 'rgba(238, 77, 45, 0.12)', 
+                                                            border: '1px dashed #ee4d2d66',
+                                                            padding: '4px 10px', 
+                                                            borderRadius: '4px',
+                                                            letterSpacing: '1px'
+                                                        }}>
+                                                            {v.code}
+                                                        </span>
+                                                        <span style={{ 
+                                                            fontSize: '12px', 
+                                                            color: '#52c41a', 
+                                                            fontWeight: 'bold', 
+                                                            background: 'rgba(82, 196, 26, 0.12)', 
+                                                            padding: '3px 8px', 
+                                                            borderRadius: '4px' 
+                                                        }}>
+                                                            {v.discount_type === 'percent' 
+                                                                ? `Giảm ${v.discount_value}%` 
+                                                                : `Giảm ${Number(v.discount_value).toLocaleString('vi-VN')}đ`}
+                                                        </span>
+                                                    </div>
+
+                                                    <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', color: '#fff', fontWeight: '600' }}>
+                                                        {v.name}
+                                                    </h4>
+
+                                                    {v.description && (
+                                                        <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#aaa', lineHeight: '1.4' }}>
+                                                            {v.description}
+                                                        </p>
+                                                    )}
+
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', color: '#888', marginBottom: '14px' }}>
+                                                        <span>• Đơn tối thiểu: <strong style={{ color: '#ccc' }}>{minOrder > 0 ? `${minOrder.toLocaleString('vi-VN')}đ` : 'Mọi đơn hàng'}</strong></span>
+                                                        {v.discount_type === 'percent' && maxDiscount > 0 && (
+                                                            <span>• Giảm tối đa: <strong style={{ color: '#ccc' }}>{maxDiscount.toLocaleString('vi-VN')}đ</strong></span>
+                                                        )}
+                                                        {v.expires_at && (
+                                                            <span>• Hạn dùng: <strong style={{ color: '#ccc' }}>{new Date(v.expires_at).toLocaleDateString('vi-VN')}</strong></span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Nút hành động */}
+                                                <div style={{ borderTop: '1px solid #333', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '11px', color: '#777' }}>
+                                                        {v.usage_limit > 0 ? `Đã dùng ${v.used_count}/${v.usage_limit}` : `Đã dùng ${v.used_count || 0}`}
+                                                    </span>
+
+                                                    {!currentUser ? (
+                                                        <button
+                                                            onClick={() => navigate('/login')}
+                                                            style={{
+                                                                padding: '6px 14px',
+                                                                background: '#333',
+                                                                color: '#ee4d2d',
+                                                                border: '1px solid #ee4d2d55',
+                                                                borderRadius: '6px',
+                                                                fontSize: '12px',
+                                                                fontWeight: '600',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Đăng nhập để lưu
+                                                        </button>
+                                                    ) : v.isUsed ? (
+                                                        <span style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '5px',
+                                                            padding: '6px 12px',
+                                                            background: '#2b2b2b',
+                                                            color: '#777',
+                                                            borderRadius: '6px',
+                                                            fontSize: '12px',
+                                                            fontWeight: '500'
+                                                        }}>
+                                                            Đã sử dụng
+                                                        </span>
+                                                    ) : v.isSaved ? (
+                                                        <span style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '5px',
+                                                            padding: '6px 12px',
+                                                            background: '#52c41a15',
+                                                            border: '1px solid #52c41a44',
+                                                            color: '#52c41a',
+                                                            borderRadius: '6px',
+                                                            fontSize: '12px',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            <CheckCircleIcon size={14} /> Đã lưu vào ví
+                                                        </span>
+                                                    ) : isLimitReached ? (
+                                                        <span style={{
+                                                            padding: '6px 12px',
+                                                            background: '#2b2b2b',
+                                                            color: '#ff4d4f',
+                                                            borderRadius: '6px',
+                                                            fontSize: '12px',
+                                                            fontWeight: '500'
+                                                        }}>
+                                                            Hết lượt dùng
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleSaveVoucher(v.id)}
+                                                            disabled={isSaving}
+                                                            style={{
+                                                                padding: '7px 16px',
+                                                                background: '#ee4d2d',
+                                                                color: '#fff',
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                fontSize: '12px',
+                                                                fontWeight: 'bold',
+                                                                cursor: isSaving ? 'not-allowed' : 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                transition: 'background 0.2s',
+                                                                opacity: isSaving ? 0.7 : 1
+                                                            }}
+                                                            onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = '#d73a1c'; }}
+                                                            onMouseLeave={e => { if (!isSaving) e.currentTarget.style.background = '#ee4d2d'; }}
+                                                        >
+                                                            <TicketIcon size={14} />
+                                                            {isSaving ? 'Đang lưu...' : 'Lưu voucher'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         {isLoading ? (
                             <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>
-                                ⏳ Đang tìm kiếm quán ăn...
+                                Đang tìm kiếm quán ăn...
                             </div>
                         ) : displayedShops.length > 0 ? (
                             displayedShops.map(shop => {
@@ -263,7 +434,7 @@ export default function Home({
                                                 width: '80px', 
                                                 height: '80px', 
                                                 objectFit: 'cover', 
-                                                borderRadius: '6px',
+                                                borderRadius: '6px', 
                                                 display: 'block'
                                             }} 
                                         />
@@ -294,22 +465,22 @@ export default function Home({
                                                     color: '#aaa', 
                                                     fontSize: '10px', 
                                                     padding: '2px 6px', 
-                                                    borderRadius: '4px',
-                                                    fontWeight: 'bold',
+                                                    borderRadius: '4px', 
+                                                    fontWeight: 'bold', 
                                                     border: '1px solid #444'
                                                 }}>
                                                     ĐÃ ĐÓNG CỬA
                                                 </span>
                                             )}
                                         </div>
-                                        <span style={{ color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                                            <span style={{ color: isClosed ? '#888' : '#ee4d2d' }}>🏷 Danh mục: {shop.shop_category || 'Đồ ăn'}</span> • 
+                                        <span style={{ color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            <span style={{ color: isClosed ? '#888' : '#ee4d2d', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><TagIcon size={12} /> Danh mục: {shop.shop_category || 'Đồ ăn'}</span> • 
                                             <span style={{ color: shop.is_open ? '#28a745' : '#888' }}>
                                                 {shop.is_open ? '● Đang mở cửa' : '● Đã đóng cửa'}
                                             </span>
                                             {shop.shop_address && (
-                                                <span style={{ color: '#777' }}>
-                                                    • 📍 {shop.shop_address}
+                                                <span style={{ color: '#777', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                    • <MapPinIcon size={12} /> {shop.shop_address}
                                                 </span>
                                             )}
                                         </span>
@@ -319,7 +490,9 @@ export default function Home({
                             })
                         ) : (
                             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#888' }}>
-                                <div style={{ fontSize: '48px', marginBottom: '15px' }}>{searchKeyword ? '🔍' : '🍽️'}</div>
+                                <div style={{ marginBottom: '15px', color: '#555', display: 'flex', justifyContent: 'center' }}>
+                                    {searchKeyword ? <SearchIcon size={48} /> : <UtensilsIcon size={48} />}
+                                </div>
                                 {searchKeyword ? (
                                     <>
                                         <h4 style={{ color: '#fff', margin: '0 0 8px 0', fontSize: '16px' }}>
@@ -358,6 +531,7 @@ export default function Home({
                             </div>
                         )}
                     </div>
+                    )}
                 </div>
             </div>
 

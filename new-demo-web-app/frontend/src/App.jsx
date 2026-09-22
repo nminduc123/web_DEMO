@@ -12,20 +12,36 @@ import Checkout from './pages/Checkout';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import MyOrders from './pages/MyOrders';
+import MyVouchers from './pages/MyVouchers';
 import BannedScreen from './components/BannedScreen';
+import { ShieldAlertIcon } from './components/Icons';
 
 export default function App() {
     // Khởi tạo state ưu tiên đọc từ sessionStorage (cô lập riêng biệt cho từng tab)
     // Nếu tab mới mở chưa có session thì mới lấy từ localStorage (nếu trước đó có chọn ghi nhớ)
     const [currentUser, setCurrentUser] = useState(() => {
         try {
+            const fixAdminUser = (u) => {
+                if (u && (u.email === 'admin@mbite.com' || u.role === 'admin')) {
+                    u.id = 0;
+                    u.role = 'admin';
+                }
+                return u;
+            };
+
             const sessionUser = sessionStorage.getItem('user');
-            if (sessionUser) return JSON.parse(sessionUser);
+            if (sessionUser) {
+                const u = fixAdminUser(JSON.parse(sessionUser));
+                sessionStorage.setItem('user', JSON.stringify(u));
+                return u;
+            }
 
             const savedUser = localStorage.getItem('user');
             if (savedUser) {
-                sessionStorage.setItem('user', savedUser);
-                return JSON.parse(savedUser);
+                const u = fixAdminUser(JSON.parse(savedUser));
+                sessionStorage.setItem('user', JSON.stringify(u));
+                localStorage.setItem('user', JSON.stringify(u));
+                return u;
             }
         } catch (e) {
             console.error("Lỗi đọc dữ liệu người dùng:", e);
@@ -96,7 +112,7 @@ export default function App() {
             if (localUserStr) {
                 try {
                     const localUser = JSON.parse(localUserStr);
-                    if (localUser.id === currentUser.id) {
+                    if (localUser.id === currentUser.id || (localUser.email && localUser.email === currentUser.email)) {
                         localStorage.setItem('user', JSON.stringify(currentUser));
                     }
                 } catch (e) {}
@@ -108,26 +124,31 @@ export default function App() {
 
     // Kiểm tra trạng thái tài khoản thời gian thực (real-time ban detection & unlock sync)
     useEffect(() => {
-        if (!currentUser?.id) return;
+        if (!currentUser || (currentUser.id === undefined && currentUser.id === null && !currentUser.email)) return;
 
         const checkStatus = async () => {
             try {
-                const res = await fetch(`http://localhost:5000/api/user/status?userId=${currentUser.id}`);
+                const queryParam = currentUser.email ? `email=${encodeURIComponent(currentUser.email)}` : `userId=${currentUser.id}`;
+                const res = await fetch(`http://localhost:5000/api/user/status?${queryParam}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data.success) {
                     const isBlocked = !!data.is_blocked;
                     const banReason = data.ban_reason || null;
+                    const trueId = (data.email === 'admin@mbite.com' || data.role === 'admin') ? 0 : (data.id !== undefined ? data.id : currentUser.id);
+                    const trueRole = (data.email === 'admin@mbite.com' || data.role === 'admin') ? 'admin' : data.role;
                     if (
                         isBlocked !== !!currentUser.is_blocked || 
                         banReason !== (currentUser.ban_reason || null) || 
-                        data.role !== currentUser.role
+                        trueRole !== currentUser.role ||
+                        trueId !== currentUser.id
                     ) {
                         setCurrentUser(prev => prev ? ({
                             ...prev,
+                            id: trueId,
                             is_blocked: isBlocked,
                             ban_reason: banReason,
-                            role: data.role
+                            role: trueRole
                         }) : null);
                     }
                 }
@@ -139,9 +160,10 @@ export default function App() {
         checkStatus(); // Gọi kiểm tra ngay lập tức khi component mount
         const interval = setInterval(checkStatus, 2000); // Quét lại mỗi 2 giây để đồng bộ tức thì
         return () => clearInterval(interval);
-    }, [currentUser?.id, currentUser?.is_blocked, currentUser?.ban_reason, currentUser?.role]);
+    }, [currentUser?.id, currentUser?.email, currentUser?.is_blocked, currentUser?.ban_reason, currentUser?.role]);
 
     const isSeller = currentUser?.role === 'seller';
+    const isAdmin = currentUser?.role === 'admin';
     const [selectedCategory, setSelectedCategory] = useState('Tất cả');
     const [searchKeyword, setSearchKeyword] = useState('');
 
@@ -157,12 +179,14 @@ export default function App() {
                 setSearchKeyword={setSearchKeyword}
             />
             
-            <main style={{ flex: 1, backgroundColor: isSeller ? '#1a1a1a' : '#f5f5f5' }}>
+            <main style={{ flex: 1, backgroundColor: '#141414' }}>
                 {currentUser?.is_blocked ? (
                     <div style={{ padding: '80px 20px', textAlign: 'center', color: '#ff4d4f', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <div>
-                            <h2 style={{ fontSize: '22px', marginBottom: '10px' }}>🚫 Tài khoản đang bị giới hạn hoạt động</h2>
-                            <p style={{ color: '#888', fontSize: '14px' }}>Mọi tính năng mua bán trên hệ thống tạm thời bị ngưng. Vui lòng gửi đơn minh oan ở màn hình hiển thị.</p>
+                            <h2 style={{ fontSize: '22px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <ShieldAlertIcon size={24} color="#ff4d4f" /> Tài khoản đang bị giới hạn hoạt động
+                            </h2>
+                            <p style={{ color: '#888', fontSize: '14px' }}>Mọi tính năng mua bán trên hệ thống tạm thời bị ngưng. Vui lòng gửi phản hồi ở màn hình hiển thị.</p>
                         </div>
                     </div>
                 ) : (
@@ -208,6 +232,10 @@ export default function App() {
                             <Route path="/my-orders" element={<MyOrders currentUser={currentUser} />} />
                             <Route path="/orders" element={<Navigate to="/my-orders" replace />} />
 
+                            {/* Ví Voucher của Buyer */}
+                            <Route path="/my-vouchers" element={<MyVouchers currentUser={currentUser} setSelectedCategory={setSelectedCategory} />} />
+                            <Route path="/vouchers" element={<MyVouchers currentUser={currentUser} setSelectedCategory={setSelectedCategory} />} />
+
                             {/* Quản trị viên hệ thống (Admin) */}
                             <Route path="/admin" element={currentUser?.role === 'admin' ? <Admin currentUser={currentUser} /> : <Navigate to="/" replace />} />
 
@@ -223,7 +251,7 @@ export default function App() {
             {/* Ẩn footer khách khi tài khoản là seller */}
             {!isSeller && <Footer />}
 
-            {/* Khóa hoàn toàn giao diện và hiển thị màn hình giải trình minh oan khi tài khoản bị khóa */}
+            {/* Khóa hoàn toàn giao diện và hiển thị màn hình gửi phản hồi khi tài khoản bị khóa */}
             {currentUser?.is_blocked && (
                 <BannedScreen currentUser={currentUser} setCurrentUser={setCurrentUser} />
             )}

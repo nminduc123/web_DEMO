@@ -14,9 +14,36 @@ const dbConfig = { host: 'localhost', port: 3306, user: 'root', password: '', da
 const otpStorage = {};
 const tempUsers = {}; // <-- Thêm biến này để lưu tạm thông tin đăng ký chờ xác thực
 
+// Hàm kiểm tra rỗng an toàn hỗ trợ userId = 0 (tránh lỗi falsy trong JS)
+const isNullOrEmpty = (val) => val === undefined || val === null || val === '';
+
+// Đảm bảo tài khoản Quản trị viên luôn có id = 0 trong CSDL và bảng user_vouchers tồn tại
+(async () => {
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        await connection.execute("UPDATE users SET id = 0 WHERE email = 'admin@mbite.com' AND id != 0");
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS user_vouchers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                voucher_id INT NOT NULL,
+                is_used TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                used_at DATETIME DEFAULT NULL,
+                UNIQUE KEY unique_user_voucher (user_id, voucher_id),
+                KEY idx_user_id (user_id),
+                KEY idx_voucher_id (voucher_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        `);
+        await connection.end();
+    } catch (e) {
+        console.error("Lỗi khởi tạo ID Admin = 0 / user_vouchers:", e.message);
+    }
+})();
+
 // Hàm tiện ích kiểm tra xem một tài khoản có đang bị khóa (is_blocked = 1) hay không
 const checkUserBlocked = async (connection, userId) => {
-    if (!userId) return false;
+    if (isNullOrEmpty(userId)) return false;
     try {
         const [rows] = await connection.execute('SELECT is_blocked FROM users WHERE id = ?', [userId]);
         return rows.length > 0 && !!rows[0].is_blocked;
@@ -265,7 +292,7 @@ app.post('/api/checkout', async (req, res) => {
         const connection = await mysql.createConnection(dbConfig);
 
         // Kiểm tra xem tài khoản Người mua có đang bị khóa hay không
-        if (userId) {
+        if (!isNullOrEmpty(userId)) {
             const isBuyerBlocked = await checkUserBlocked(connection, userId);
             if (isBuyerBlocked) {
                 await connection.end();
@@ -337,24 +364,73 @@ app.post('/api/checkout', async (req, res) => {
             return sum + (Number(dbItem.price) * Number(item.quantity || 1));
         }, 0);
 
-        // XỬ LÝ VOUCHER & TÍNH TOÁN GIẢM GIÁ CHUẨN XÁC TỪ SERVER
+        // XỬ LÝ VOUCHER & TÍNH TOÁN GIẢM GIÁ CHUẨN XÁC TỪ SERVER & CƠ SỞ DỮ LIỆU
         let serverDiscount = 0;
         let appliedVoucherCode = null;
 
         if (voucherCode) {
             const code = String(voucherCode).trim().toUpperCase();
-            if (code === 'MBITE10') {
-                serverDiscount = Math.min(30000, Math.round(verifiedTotalPrice * 0.1));
-                appliedVoucherCode = 'MBITE10';
-            } else if (code === 'FREESHIP' && verifiedTotalPrice >= 50000) {
-                serverDiscount = 15000;
-                appliedVoucherCode = 'FREESHIP';
-            } else if (code === 'GIAM20K' && verifiedTotalPrice >= 100000) {
-                serverDiscount = 20000;
-                appliedVoucherCode = 'GIAM20K';
-            } else if (code === 'SIEUTIEC50K' && verifiedTotalPrice >= 200000) {
-                serverDiscount = 50000;
-                appliedVoucherCode = 'SIEUTIEC50K';
+
+            // KIỂM TRA GIỚI HẠN: MỖI TÀI KHOẢN CHỈ ĐƯỢC SỬ DỤNG MỖI VOUCHER 1 LẦN
+            if (!isNullOrEmpty(userId)) {
+                const [usedOrders] = await connection.execute(
+                    'SELECT id FROM orders WHERE user_id = ? AND UPPER(voucher_code) = ? AND status != "cancelled"',
+                    [userId, code]
+                );
+                if (usedOrders.length > 0) {
+                    await connection.end();
+                    return res.status(400).json({
+                        success: false,
+                        message: `Tài khoản của bạn đã sử dụng mã [${code}] trước đó. Mỗi tài khoản chỉ được áp dụng mã này 1 lần!`
+                    });
+                }
+            }
+
+            // 1. Kiểm tra voucher trong bảng vouchers
+            const [voucherRows] = await connection.execute(
+                'SELECT * FROM vouchers WHERE code = ? AND is_active = 1 AND (expires_at IS NULL OR expires_at > NOW())',
+                [code]
+            );
+
+            if (voucherRows.length > 0) {
+                const voucher = voucherRows[0];
+                const minOrder = Number(voucher.min_order) || 0;
+                
+                // Kiểm tra đơn hàng tối thiểu
+                if (verifiedTotalPrice >= minOrder) {
+                    const usageLimit = Number(voucher.usage_limit) || 0;
+                    const usedCount = Number(voucher.used_count) || 0;
+
+                    if (usageLimit <= 0 || usedCount < usageLimit) {
+                        appliedVoucherCode = voucher.code;
+                        if (voucher.discount_type === 'percent') {
+                            const percentDiscount = Math.round(verifiedTotalPrice * (Number(voucher.discount_value) / 100));
+                            const maxDiscount = Number(voucher.max_discount) || 0;
+                            if (maxDiscount > 0) {
+                                serverDiscount = Math.min(maxDiscount, percentDiscount);
+                            } else {
+                                serverDiscount = percentDiscount;
+                            }
+                        } else {
+                            serverDiscount = Number(voucher.discount_value) || 0;
+                        }
+                    }
+                }
+            } else {
+                // Fallback nếu có mã preset hardcode
+                if (code === 'MBITE10') {
+                    serverDiscount = Math.min(30000, Math.round(verifiedTotalPrice * 0.1));
+                    appliedVoucherCode = 'MBITE10';
+                } else if (code === 'FREESHIP' && verifiedTotalPrice >= 50000) {
+                    serverDiscount = 15000;
+                    appliedVoucherCode = 'FREESHIP';
+                } else if (code === 'GIAM20K' && verifiedTotalPrice >= 100000) {
+                    serverDiscount = 20000;
+                    appliedVoucherCode = 'GIAM20K';
+                } else if (code === 'SIEUTIEC50K' && verifiedTotalPrice >= 200000) {
+                    serverDiscount = 50000;
+                    appliedVoucherCode = 'SIEUTIEC50K';
+                }
             }
         }
 
@@ -385,6 +461,26 @@ app.post('/api/checkout', async (req, res) => {
             ]
         );
 
+        // TĂNG SỐ LƯỢT SỬ DỤNG VOUCHER (used_count) VÀ CẬP NHẬT TRẠNG THÁI TRONG VÍ NGƯỜI DÙNG
+        if (appliedVoucherCode) {
+            await connection.execute(
+                'UPDATE vouchers SET used_count = used_count + 1 WHERE code = ?',
+                [appliedVoucherCode]
+            );
+
+            // Cập nhật trạng thái voucher trong ví của người dùng thành đã dùng (is_used = 1)
+            // Nếu người dùng chưa lưu trước đó thì tự động lưu với trạng thái đã sử dụng để chống tái sử dụng
+            const [voucherInfo] = await connection.execute('SELECT id FROM vouchers WHERE code = ?', [appliedVoucherCode]);
+            if (voucherInfo.length > 0 && !isNullOrEmpty(userId)) {
+                const voucherId = voucherInfo[0].id;
+                await connection.execute(`
+                    INSERT INTO user_vouchers (user_id, voucher_id, is_used, used_at)
+                    VALUES (?, ?, 1, NOW())
+                    ON DUPLICATE KEY UPDATE is_used = 1, used_at = NOW()
+                `, [userId, voucherId]);
+            }
+        }
+
         await connection.end();
         res.json({ success: true, message: "Đặt hàng thành công!" });
     } catch (error) { 
@@ -408,7 +504,7 @@ app.get('/api/seller/orders', async (req, res) => {
 // Lấy danh sách đơn hàng của người mua (Buyer)
 app.get('/api/user/orders', async (req, res) => {
     const { userId } = req.query;
-    if (!userId) {
+    if (isNullOrEmpty(userId)) {
         return res.status(400).json({ success: false, message: "Thiếu thông tin người dùng!" });
     }
     try {
@@ -432,7 +528,7 @@ app.get('/api/user/orders', async (req, res) => {
 // Người mua (Buyer) hủy đơn hàng khi quán chưa duyệt và đã quá 5 phút chờ
 app.post('/api/user/cancel-order', async (req, res) => {
     const { orderId, userId, cancel_reason } = req.body;
-    if (!orderId || !userId) {
+    if (!orderId || isNullOrEmpty(userId)) {
         return res.status(400).json({ success: false, message: "Thiếu thông tin đơn hàng hoặc người dùng!" });
     }
     try {
@@ -487,6 +583,17 @@ app.post('/api/user/cancel-order', async (req, res) => {
             'UPDATE orders SET status = "cancelled", cancel_reason = ? WHERE id = ?',
             [reason, orderId]
         );
+
+        // Khôi phục lượt dùng voucher nếu đơn hàng có áp dụng mã voucher
+        if (order.voucher_code) {
+            await connection.execute('UPDATE vouchers SET used_count = GREATEST(0, used_count - 1) WHERE code = ?', [order.voucher_code]);
+            await connection.execute(`
+                UPDATE user_vouchers 
+                SET is_used = 0, used_at = NULL 
+                WHERE user_id = ? AND voucher_id = (SELECT id FROM vouchers WHERE code = ? LIMIT 1)
+            `, [userId, order.voucher_code]);
+        }
+
         await connection.end();
 
         res.json({
@@ -509,6 +616,21 @@ app.post('/api/seller/update-order-status', async (req, res) => {
         } else {
             await connection.execute('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
         }
+
+        // Nếu quán từ chối đơn hàng, hoàn trả lượt dùng voucher cho người mua
+        if (status === 'cancelled') {
+            const [orderRows] = await connection.execute('SELECT user_id, voucher_code FROM orders WHERE id = ?', [orderId]);
+            if (orderRows.length > 0 && orderRows[0].voucher_code) {
+                const { user_id, voucher_code } = orderRows[0];
+                await connection.execute('UPDATE vouchers SET used_count = GREATEST(0, used_count - 1) WHERE code = ?', [voucher_code]);
+                await connection.execute(`
+                    UPDATE user_vouchers 
+                    SET is_used = 0, used_at = NULL 
+                    WHERE user_id = ? AND voucher_id = (SELECT id FROM vouchers WHERE code = ? LIMIT 1)
+                `, [user_id, voucher_code]);
+            }
+        }
+
         await connection.end();
         res.json({ success: true, message: status === 'cancelled' ? "Đã từ chối đơn hàng thành công!" : "Cập nhật trạng thái đơn thành công!" });
     } catch (error) {
@@ -838,7 +960,7 @@ app.post('/api/user/change-password', async (req, res) => {
 // 3. Thả tim / Bỏ thích quán (Toggle Favorite)
 app.post('/api/favorites/toggle', async (req, res) => {
     const { userId, shopId } = req.body;
-    if (!userId || !shopId) {
+    if (isNullOrEmpty(userId) || !shopId) {
         return res.status(400).json({ success: false, message: "Thiếu userId hoặc shopId" });
     }
     try {
@@ -878,7 +1000,7 @@ app.post('/api/favorites/toggle', async (req, res) => {
 // 4. Kiểm tra trạng thái thích của 1 quán
 app.get('/api/favorites/check', async (req, res) => {
     const { userId, shopId } = req.query;
-    if (!userId || !shopId) {
+    if (isNullOrEmpty(userId) || !shopId) {
         return res.json({ success: true, isFavorited: false });
     }
     try {
@@ -897,7 +1019,7 @@ app.get('/api/favorites/check', async (req, res) => {
 // 5. Lấy danh sách toàn bộ quán yêu thích của Buyer
 app.get('/api/favorites', async (req, res) => {
     const { userId } = req.query;
-    if (!userId) {
+    if (isNullOrEmpty(userId)) {
         return res.status(400).json({ success: false, message: "Thiếu userId" });
     }
     try {
@@ -971,7 +1093,7 @@ app.get('/api/admin/stats', async (req, res) => {
     }
 });
 
-// 2. Lấy danh sách toàn bộ người dùng
+// 2. Lấy danh sách toàn bộ người dùng (Ẩn tài khoản Admin gốc, các tài khoản được nâng quyền Admin vẫn hiển thị)
 app.get('/api/admin/users', async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
@@ -979,6 +1101,7 @@ app.get('/api/admin/users', async (req, res) => {
             SELECT id, email, phone, role, is_blocked, ban_reason, is_verified, full_name, avatar, 
                    shop_name, shop_category, is_open, is_published, created_at
             FROM users
+            WHERE email != 'admin@mbite.com' AND id != 0
             ORDER BY id DESC
         `);
         await connection.end();
@@ -991,15 +1114,31 @@ app.get('/api/admin/users', async (req, res) => {
 
 // 2.1 Kiểm tra trạng thái tài khoản thời gian thực (Polling status & ban check)
 app.get('/api/user/status', async (req, res) => {
-    const { userId } = req.query;
-    if (!userId) return res.status(400).json({ success: false, message: 'Thiếu userId' });
+    const { userId, email } = req.query;
     try {
         const connection = await mysql.createConnection(dbConfig);
-        const [users] = await connection.execute('SELECT id, is_blocked, ban_reason, role FROM users WHERE id = ?', [userId]);
+        let query = 'SELECT id, email, full_name, avatar, is_blocked, ban_reason, role FROM users WHERE ';
+        let params = [];
+        if (!isNullOrEmpty(email)) {
+            query += 'email = ?';
+            params = [email];
+        } else if (!isNullOrEmpty(userId)) {
+            query += 'id = ?';
+            params = [userId];
+        } else {
+            await connection.end();
+            return res.status(400).json({ success: false, message: 'Thiếu userId hoặc email' });
+        }
+
+        const [users] = await connection.execute(query, params);
         await connection.end();
         if (users.length === 0) return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
         res.json({ 
             success: true, 
+            id: users[0].id,
+            email: users[0].email,
+            full_name: users[0].full_name,
+            avatar: users[0].avatar,
             is_blocked: !!users[0].is_blocked, 
             ban_reason: users[0].ban_reason || '',
             role: users[0].role 
@@ -1016,6 +1155,9 @@ app.post('/api/admin/users/:id/role', async (req, res) => {
     const { role } = req.body;
     if (!['user', 'seller', 'admin'].includes(role)) {
         return res.status(400).json({ success: false, message: "Vai trò không hợp lệ!" });
+    }
+    if (Number(id) === 0 || Number(id) === 19) {
+        return res.status(400).json({ success: false, message: "Không thể thay đổi quyền của Quản trị viên tối cao!" });
     }
     try {
         const connection = await mysql.createConnection(dbConfig);
@@ -1034,14 +1176,14 @@ app.post('/api/admin/users/:id/toggle-block', async (req, res) => {
     const { ban_reason } = req.body || {};
     try {
         const connection = await mysql.createConnection(dbConfig);
-        const [users] = await connection.execute('SELECT id, is_blocked, role FROM users WHERE id = ?', [id]);
+        const [users] = await connection.execute('SELECT id, is_blocked, role, email FROM users WHERE id = ?', [id]);
         if (users.length === 0) {
             await connection.end();
             return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
         }
         
-        // Không cho phép tự khóa tài khoản admin chính
-        if (users[0].role === 'admin' && users[0].id === 19) {
+        // Không cho phép tự khóa tài khoản admin chính (id = 0 hoặc email admin@mbite.com)
+        if (users[0].role === 'admin' && (Number(users[0].id) === 0 || Number(users[0].id) === 19 || users[0].email === 'admin@mbite.com')) {
             await connection.end();
             return res.status(400).json({ success: false, message: "Không thể khóa tài khoản Quản trị viên tối cao!" });
         }
@@ -1067,11 +1209,11 @@ app.post('/api/admin/users/:id/toggle-block', async (req, res) => {
     }
 });
 
-// 4.1 Người dùng gửi đơn khiếu nại / giải trình minh oan
+// 4.1 Người dùng gửi ý kiến phản hồi
 app.post('/api/appeal/submit', async (req, res) => {
     const { userId, email, appeal_reason, evidence_info } = req.body;
-    if (!userId || !appeal_reason || !appeal_reason.trim()) {
-        return res.status(400).json({ success: false, message: "Vui lòng nhập nội dung giải trình/minh oan!" });
+    if (isNullOrEmpty(userId) || !appeal_reason || !appeal_reason.trim()) {
+        return res.status(400).json({ success: false, message: "Vui lòng nhập nội dung phản hồi!" });
     }
     try {
         const connection = await mysql.createConnection(dbConfig);
@@ -1080,17 +1222,17 @@ app.post('/api/appeal/submit', async (req, res) => {
             VALUES (?, ?, ?, ?, 'pending')
         `, [userId, email || '', appeal_reason.trim(), evidence_info ? evidence_info.trim() : '']);
         await connection.end();
-        res.json({ success: true, message: "Đã gửi đơn minh oan thành công! Admin sẽ sớm xem xét phản hồi." });
+        res.json({ success: true, message: "Đã gửi phản hồi thành công! Admin sẽ sớm xem xét phản hồi." });
     } catch (error) {
-        console.error("Lỗi gửi khiếu nại:", error);
-        res.status(500).json({ success: false, message: "Lỗi hệ thống khi gửi khiếu nại!" });
+        console.error("Lỗi gửi phản hồi:", error);
+        res.status(500).json({ success: false, message: "Lỗi hệ thống khi gửi phản hồi!" });
     }
 });
 
-// 4.2 Người dùng xem lịch sử khiếu nại của mình
+// 4.2 Người dùng xem lịch sử phản hồi của mình
 app.get('/api/appeal/my-appeals', async (req, res) => {
     const { userId } = req.query;
-    if (!userId) return res.status(400).json({ success: false, message: "Thiếu userId" });
+    if (isNullOrEmpty(userId)) return res.status(400).json({ success: false, message: "Thiếu userId" });
     try {
         const connection = await mysql.createConnection(dbConfig);
         const [rows] = await connection.execute(
@@ -1100,12 +1242,12 @@ app.get('/api/appeal/my-appeals', async (req, res) => {
         await connection.end();
         res.json({ success: true, appeals: rows });
     } catch (error) {
-        console.error("Lỗi lấy danh sách khiếu nại của user:", error);
+        console.error("Lỗi lấy danh sách phản hồi của user:", error);
         res.status(500).json({ success: false, appeals: [] });
     }
 });
 
-// 4.3 Admin xem danh sách toàn bộ khiếu nại
+// 4.3 Admin xem danh sách toàn bộ phản hồi
 app.get('/api/admin/appeals', async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
@@ -1118,12 +1260,12 @@ app.get('/api/admin/appeals', async (req, res) => {
         await connection.end();
         res.json({ success: true, appeals });
     } catch (error) {
-        console.error("Lỗi lấy danh sách khiếu nại cho admin:", error);
+        console.error("Lỗi lấy danh sách phản hồi cho admin:", error);
         res.status(500).json({ success: false, appeals: [] });
     }
 });
 
-// 4.4 Admin xử lý khiếu nại (Chấp nhận mở khóa hoặc Từ chối)
+// 4.4 Admin xử lý phản hồi (Chấp thuận mở khóa hoặc Từ chối)
 app.post('/api/admin/appeals/:id/resolve', async (req, res) => {
     const { id } = req.params;
     const { action, admin_response, userId } = req.body;
@@ -1138,7 +1280,7 @@ app.post('/api/admin/appeals/:id/resolve', async (req, res) => {
             WHERE id = ?
         `, [action, admin_response ? admin_response.trim() : '', id]);
 
-        if (action === 'approved' && userId) {
+        if (action === 'approved' && !isNullOrEmpty(userId)) {
             await connection.execute(`
                 UPDATE users 
                 SET is_blocked = 0, ban_reason = NULL 
@@ -1149,11 +1291,11 @@ app.post('/api/admin/appeals/:id/resolve', async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: action === 'approved' ? 'Đã duyệt minh oan và mở khóa tài khoản thành công!' : 'Đã từ chối đơn khiếu nại!' 
+            message: action === 'approved' ? 'Đã duyệt phản hồi và mở khóa tài khoản thành công!' : 'Đã từ chối phản hồi!' 
         });
     } catch (error) {
-        console.error("Lỗi xử lý khiếu nại:", error);
-        res.status(500).json({ success: false, message: "Lỗi hệ thống khi xử lý khiếu nại!" });
+        console.error("Lỗi xử lý phản hồi:", error);
+        res.status(500).json({ success: false, message: "Lỗi hệ thống khi xử lý phản hồi!" });
     }
 });
 
@@ -1273,7 +1415,9 @@ app.delete('/api/admin/vouchers/:id', async (req, res) => {
 });
 
 // 10. API lấy voucher đang hoạt động cho Người mua (Checkout)
+// Mỗi tài khoản người dùng chỉ được sử dụng mỗi voucher 1 lần duy nhất
 app.get('/api/vouchers/active', async (req, res) => {
+    const { userId } = req.query;
     try {
         const connection = await mysql.createConnection(dbConfig);
         const [rows] = await connection.execute(`
@@ -1283,10 +1427,200 @@ app.get('/api/vouchers/active', async (req, res) => {
             WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > NOW())
             ORDER BY id DESC
         `);
+
+        // Lọc các voucher còn lượt dùng toàn hệ thống
+        let available = rows.filter(v => !v.usage_limit || v.usage_limit <= 0 || v.used_count < v.usage_limit);
+
+        // Nếu có userId, lọc bỏ các voucher mà tài khoản này đã từng dùng (trong orders hoặc trong user_vouchers)
+        if (!isNullOrEmpty(userId)) {
+            const [usedRows] = await connection.execute(
+                `SELECT DISTINCT UPPER(v.code) AS voucher_code 
+                 FROM user_vouchers uv 
+                 JOIN vouchers v ON uv.voucher_id = v.id 
+                 WHERE uv.user_id = ? AND uv.is_used = 1
+                 UNION
+                 SELECT DISTINCT UPPER(voucher_code) AS voucher_code 
+                 FROM orders 
+                 WHERE user_id = ? AND voucher_code IS NOT NULL AND status != 'cancelled'`,
+                [userId, userId]
+            );
+            const usedCodes = usedRows.map(r => r.voucher_code);
+            available = available.filter(v => !usedCodes.includes(String(v.code).toUpperCase()));
+        }
+
         await connection.end();
-        res.json({ success: true, vouchers: rows });
+        res.json({ success: true, vouchers: available });
     } catch (error) {
         console.error("Lỗi lấy voucher active:", error);
+        res.status(500).json({ success: false, vouchers: [] });
+    }
+});
+
+// 11. API lấy danh sách voucher công khai để hiển thị ở danh mục "Voucher" trên Sàn
+// Hiển thị trạng thái isSaved (đã lưu vào ví chưa) và isUsed (đã dùng chưa)
+app.get('/api/vouchers/public', async (req, res) => {
+    const { userId } = req.query;
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        const [vouchers] = await connection.execute(`
+            SELECT id, code, name, description, discount_type, discount_value, 
+                   max_discount, min_order, usage_limit, used_count, expires_at
+            FROM vouchers
+            WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > NOW())
+            ORDER BY id DESC
+        `);
+
+        if (!isNullOrEmpty(userId)) {
+            const [userVouchers] = await connection.execute(
+                'SELECT voucher_id, is_used FROM user_vouchers WHERE user_id = ?',
+                [userId]
+            );
+            const userVoucherMap = {};
+            userVouchers.forEach(uv => {
+                userVoucherMap[uv.voucher_id] = {
+                    isSaved: true,
+                    isUsed: !!uv.is_used
+                };
+            });
+
+            const [orderRows] = await connection.execute(
+                'SELECT DISTINCT UPPER(voucher_code) AS code FROM orders WHERE user_id = ? AND voucher_code IS NOT NULL AND status != "cancelled"',
+                [userId]
+            );
+            const usedOrderCodes = new Set(orderRows.map(r => r.code));
+
+            vouchers.forEach(v => {
+                const uv = userVoucherMap[v.id];
+                const usedInOrder = usedOrderCodes.has(String(v.code).toUpperCase());
+                v.isSaved = !!uv;
+                v.isUsed = (uv && uv.isUsed) || usedInOrder;
+            });
+        } else {
+            vouchers.forEach(v => {
+                v.isSaved = false;
+                v.isUsed = false;
+            });
+        }
+
+        await connection.end();
+        res.json({ success: true, vouchers });
+    } catch (error) {
+        console.error("Lỗi lấy danh sách voucher public:", error);
+        res.status(500).json({ success: false, vouchers: [] });
+    }
+});
+
+// 12. API lưu voucher vào ví cho người dùng
+// Mỗi tài khoản chỉ được lưu 1 voucher 1 lần duy nhất, không thể lưu trùng
+app.post('/api/user/save-voucher', async (req, res) => {
+    const { userId, voucherId } = req.body;
+
+    if (isNullOrEmpty(userId) || !voucherId) {
+        return res.status(400).json({ success: false, message: "Vui lòng đăng nhập để lưu voucher!" });
+    }
+
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        
+        if (await checkUserBlocked(connection, userId)) {
+            await connection.end();
+            return res.status(403).json({ success: false, message: "Tài khoản của bạn đang bị khóa!" });
+        }
+
+        // Kiểm tra voucher tồn tại và còn hiệu lực
+        const [vRows] = await connection.execute(
+            'SELECT * FROM vouchers WHERE id = ? AND is_active = 1 AND (expires_at IS NULL OR expires_at > NOW())',
+            [voucherId]
+        );
+        if (vRows.length === 0) {
+            await connection.end();
+            return res.status(404).json({ success: false, message: "Voucher không tồn tại hoặc đã hết hạn!" });
+        }
+
+        const voucher = vRows[0];
+
+        // Kiểm tra số lượt dùng toàn hệ thống
+        if (voucher.usage_limit > 0 && voucher.used_count >= voucher.usage_limit) {
+            await connection.end();
+            return res.status(400).json({ success: false, message: "Voucher này đã hết lượt sử dụng trên toàn hệ thống!" });
+        }
+
+        // Kiểm tra người dùng đã từng sử dụng voucher này trong đơn hàng chưa
+        const [usedOrders] = await connection.execute(
+            'SELECT id FROM orders WHERE user_id = ? AND UPPER(voucher_code) = ? AND status != "cancelled"',
+            [userId, String(voucher.code).toUpperCase()]
+        );
+        if (usedOrders.length > 0) {
+            await connection.end();
+            return res.status(400).json({ success: false, message: "Bạn đã từng sử dụng voucher này rồi, không thể lưu lại!" });
+        }
+
+        // Kiểm tra trong bảng user_vouchers xem đã lưu hoặc đã dùng chưa
+        const [existing] = await connection.execute(
+            'SELECT is_used FROM user_vouchers WHERE user_id = ? AND voucher_id = ?',
+            [userId, voucherId]
+        );
+        if (existing.length > 0) {
+            await connection.end();
+            if (existing[0].is_used) {
+                return res.status(400).json({ success: false, message: "Bạn đã sử dụng voucher này rồi!" });
+            }
+            return res.status(400).json({ success: false, message: "Voucher này đã có trong ví của bạn rồi!" });
+        }
+
+        // Thêm voucher vào ví
+        await connection.execute(
+            'INSERT INTO user_vouchers (user_id, voucher_id, is_used) VALUES (?, ?, 0)',
+            [userId, voucherId]
+        );
+
+        await connection.end();
+        res.json({ success: true, message: `Đã lưu voucher [${voucher.code}] vào ví thành công!` });
+    } catch (error) {
+        console.error("Lỗi khi lưu voucher:", error);
+        res.status(500).json({ success: false, message: "Lỗi hệ thống khi lưu voucher!" });
+    }
+});
+
+// 13. API lấy danh sách voucher trong ví của người dùng
+// Chỉ trả về các voucher chưa dùng (is_used = 0) và còn hiệu lực.
+// Các voucher đã dùng sẽ không xuất hiện (tự động xóa khỏi ví).
+app.get('/api/user/my-vouchers', async (req, res) => {
+    const { userId } = req.query;
+
+    if (isNullOrEmpty(userId)) {
+        return res.status(400).json({ success: false, message: "Thiếu thông tin người dùng!" });
+    }
+
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute(`
+            SELECT uv.id AS wallet_id, uv.created_at AS saved_at,
+                   v.id, v.code, v.name, v.description, v.discount_type, 
+                   v.discount_value, v.max_discount, v.min_order, v.usage_limit, 
+                   v.used_count, v.expires_at
+            FROM user_vouchers uv
+            JOIN vouchers v ON uv.voucher_id = v.id
+            WHERE uv.user_id = ? 
+              AND uv.is_used = 0
+              AND v.is_active = 1
+              AND (v.expires_at IS NULL OR v.expires_at > NOW())
+            ORDER BY uv.id DESC
+        `, [userId]);
+
+        // Lọc thêm phòng ngừa: nếu mã voucher đã từng dùng trong đơn hàng thành công thì loại bỏ
+        const [orderRows] = await connection.execute(
+            'SELECT DISTINCT UPPER(voucher_code) AS code FROM orders WHERE user_id = ? AND voucher_code IS NOT NULL AND status != "cancelled"',
+            [userId]
+        );
+        const usedCodes = new Set(orderRows.map(r => r.code));
+
+        const activeMyVouchers = rows.filter(v => !usedCodes.has(String(v.code).toUpperCase()));
+
+        await connection.end();
+        res.json({ success: true, vouchers: activeMyVouchers });
+    } catch (error) {
+        console.error("Lỗi lấy ví voucher:", error);
         res.status(500).json({ success: false, vouchers: [] });
     }
 });
