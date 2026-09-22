@@ -29,7 +29,7 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
         if (!currentUser?.id) return;
         setLoadingAppeals(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/appeal/my-appeals?userId=${currentUser.id}`);
+            const res = await fetch(`/api/appeal/my-appeals?userId=${currentUser.id}`);
             const data = await res.json();
             if (data.success) {
                 setAppeals(data.appeals || []);
@@ -54,7 +54,7 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
         if (!currentUser?.id) return;
         setIsRefreshing(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/user/status?userId=${currentUser.id}`);
+            const res = await fetch(`/api/user/status?userId=${currentUser.id}`);
             const data = await res.json();
             if (data.success) {
                 if (!data.is_blocked) {
@@ -85,7 +85,7 @@ export default function BannedScreen({ currentUser, setCurrentUser }) {
         setSubmitting(true);
         setStatusMessage({ text: '', type: '' });
         try {
-            const res = await fetch('http://localhost:5000/api/appeal/submit', {
+            const res = await fetch('/api/appeal/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

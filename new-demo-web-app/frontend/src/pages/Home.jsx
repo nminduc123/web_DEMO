@@ -22,8 +22,8 @@ export default function Home({
     const fetchPublicVouchers = () => {
         setIsVoucherLoading(true);
         const url = currentUser?.id 
-            ? `http://localhost:5000/api/vouchers/public?userId=${currentUser.id}`
-            : 'http://localhost:5000/api/vouchers/public';
+            ? `/api/vouchers/public?userId=${currentUser.id}`
+            : '/api/vouchers/public';
         fetch(url)
             .then(res => res.json())
             .then(data => {
@@ -50,7 +50,7 @@ export default function Home({
         }
         setSavingVoucherId(voucherId);
         try {
-            const res = await fetch('http://localhost:5000/api/user/save-voucher', {
+            const res = await fetch('/api/user/save-voucher', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -86,8 +86,8 @@ export default function Home({
     useEffect(() => {
         setIsLoading(true);
         const url = searchKeyword && searchKeyword.trim() !== ''
-            ? `http://localhost:5000/api/shops?search=${encodeURIComponent(searchKeyword.trim())}`
-            : 'http://localhost:5000/api/shops';
+            ? `/api/shops?search=${encodeURIComponent(searchKeyword.trim())}`
+            : '/api/shops';
 
         fetch(url)
             .then(res => res.json())

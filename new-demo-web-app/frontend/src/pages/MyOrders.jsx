@@ -31,7 +31,7 @@ export default function MyOrders({ currentUser }) {
     const fetchOrders = async () => {
         if (!currentUser?.id) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/user/orders?userId=${currentUser.id}`);
+            const res = await fetch(`/api/user/orders?userId=${currentUser.id}`);
             const data = await res.json();
             if (data.success) {
                 setOrders(data.orders || []);
@@ -150,7 +150,7 @@ export default function MyOrders({ currentUser }) {
         
         setIsCancelling(true);
         try {
-            const res = await fetch('http://localhost:5000/api/user/cancel-order', {
+            const res = await fetch('/api/user/cancel-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

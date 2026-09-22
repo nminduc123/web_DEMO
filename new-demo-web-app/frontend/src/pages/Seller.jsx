@@ -73,7 +73,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
     const fetchMenu = async (sellerId) => {
         if (!sellerId) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/foods/${sellerId}?role=seller`);
+            const res = await fetch(`/api/foods/${sellerId}?role=seller`);
             const data = await res.json();
             if (data.foods) {
                 setFoods(data.foods);
@@ -87,7 +87,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
     const fetchSellerOrders = async () => {
         if (!currentUser?.id) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/seller/orders?sellerId=${currentUser.id}`);
+            const res = await fetch(`/api/seller/orders?sellerId=${currentUser.id}`);
             const data = await res.json();
             if (data.success) {
                 setSellerOrders(data.orders || []);
@@ -169,7 +169,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
         const updatedUser = { ...currentUser, [field]: updatedValue };
 
         try {
-            const res = await fetch('http://localhost:5000/api/seller/toggle-shop', {
+            const res = await fetch('/api/seller/toggle-shop', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -202,7 +202,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
         formData.append('sellerId', currentUser.id);
 
         try {
-            const res = await fetch('http://localhost:5000/api/seller/update-avatar', {
+            const res = await fetch('/api/seller/update-avatar', {
                 method: 'POST',
                 body: formData
             });
@@ -228,7 +228,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
         e.preventDefault();
         setIsSavingShopInfo(true);
         try {
-            const res = await fetch('http://localhost:5000/api/seller/update-shop-info', {
+            const res = await fetch('/api/seller/update-shop-info', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -280,7 +280,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
 
         try {
             if (editFoodId) {
-                const res = await fetch(`http://localhost:5000/api/seller/update-food/${editFoodId}`, {
+                const res = await fetch(`/api/seller/update-food/${editFoodId}`, {
                     method: 'PUT',
                     body: formData
                 });
@@ -293,7 +293,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
                     showToast(data.message || "Lỗi cập nhật món ăn!", "error");
                 }
             } else {
-                const res = await fetch('http://localhost:5000/api/seller/add-food', {
+                const res = await fetch('/api/seller/add-food', {
                     method: 'POST',
                     body: formData
                 });
@@ -333,7 +333,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
 
     const toggleFoodStatus = async (food) => {
         try {
-            await fetch('http://localhost:5000/api/seller/toggle-status', {
+            await fetch('/api/seller/toggle-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: food.id, is_sold_out: !food.is_sold_out })
@@ -357,7 +357,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
     const handleConfirmDeleteFood = async () => {
         if (!deleteFoodModal.foodId) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/seller/delete-food/${deleteFoodModal.foodId}`, {
+            const res = await fetch(`/api/seller/delete-food/${deleteFoodModal.foodId}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -389,7 +389,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
     // --- CÁC HÀM THAO TÁC ĐƠN HÀNG (TAB 3) ---
     const handleUpdateOrderStatus = async (orderId, status) => {
         try {
-            const res = await fetch('http://localhost:5000/api/seller/update-order-status', {
+            const res = await fetch('/api/seller/update-order-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orderId, status })
@@ -411,7 +411,7 @@ export default function Seller({ currentUser, setCurrentUser }) {
         e.preventDefault();
         if (!rejectModal.orderId) return;
         try {
-            const res = await fetch('http://localhost:5000/api/seller/update-order-status', {
+            const res = await fetch('/api/seller/update-order-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

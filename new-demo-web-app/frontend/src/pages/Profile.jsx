@@ -92,7 +92,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
                 formData.append('userId', currentUser.id);
                 formData.append('avatar', avatarFile);
 
-                const avatarRes = await fetch('http://localhost:5000/api/user/update-avatar', {
+                const avatarRes = await fetch('/api/user/update-avatar', {
                     method: 'POST',
                     body: formData
                 });
@@ -107,7 +107,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
             }
 
             // 2. Cập nhật thông tin họ tên, SĐT, địa chỉ
-            const res = await fetch('http://localhost:5000/api/user/update-profile', {
+            const res = await fetch('/api/user/update-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -151,7 +151,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
         if (!currentUser) return;
         setIsLoadingFavorites(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/favorites?userId=${currentUser.id}`);
+            const res = await fetch(`/api/favorites?userId=${currentUser.id}`);
             const data = await res.json();
             if (data.success && Array.isArray(data.shops)) {
                 setFavoriteShops(data.shops);
@@ -175,7 +175,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
         if (!currentUser) return;
 
         try {
-            const res = await fetch('http://localhost:5000/api/favorites/toggle', {
+            const res = await fetch('/api/favorites/toggle', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUser.id, shopId })
@@ -214,7 +214,7 @@ export default function Profile({ currentUser, setCurrentUser, defaultTab = 'inf
 
         setIsSavingPassword(true);
         try {
-            const res = await fetch('http://localhost:5000/api/user/change-password', {
+            const res = await fetch('/api/user/change-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

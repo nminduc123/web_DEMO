@@ -188,7 +188,7 @@ export default function Admin({ currentUser }) {
     const fetchStats = async () => {
         try {
             setLoadingStats(true);
-            const res = await fetch('http://localhost:5000/api/admin/stats');
+            const res = await fetch('/api/admin/stats');
             const data = await res.json();
             if (data.success) {
                 setStats(data.stats);
@@ -204,7 +204,7 @@ export default function Admin({ currentUser }) {
     const fetchUsers = async () => {
         try {
             setLoadingUsers(true);
-            const res = await fetch('http://localhost:5000/api/admin/users');
+            const res = await fetch('/api/admin/users');
             const data = await res.json();
             if (data.success) {
                 setUsers(data.users || []);
@@ -221,7 +221,7 @@ export default function Admin({ currentUser }) {
     const fetchVouchers = async () => {
         try {
             setLoadingVouchers(true);
-            const res = await fetch('http://localhost:5000/api/admin/vouchers');
+            const res = await fetch('/api/admin/vouchers');
             const data = await res.json();
             if (data.success) {
                 setVouchers(data.vouchers || []);
@@ -238,7 +238,7 @@ export default function Admin({ currentUser }) {
     const fetchAppeals = async () => {
         try {
             setLoadingAppeals(true);
-            const res = await fetch('http://localhost:5000/api/admin/appeals');
+            const res = await fetch('/api/admin/appeals');
             const data = await res.json();
             if (data.success) {
                 setAppeals(data.appeals || []);
@@ -275,7 +275,7 @@ export default function Admin({ currentUser }) {
             onConfirm: async () => {
                 try {
                     setActionLoadingId(userId);
-                    const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/role`, {
+                    const res = await fetch(`/api/admin/users/${userId}/role`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ role: targetRole })
@@ -314,7 +314,7 @@ export default function Admin({ currentUser }) {
                 onConfirm: async () => {
                     try {
                         setActionLoadingId(userId);
-                        const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/toggle-block`, {
+                        const res = await fetch(`/api/admin/users/${userId}/toggle-block`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ ban_reason: null })
@@ -352,7 +352,7 @@ export default function Admin({ currentUser }) {
         if (!banModal.userId) return;
         try {
             setActionLoadingId(banModal.userId);
-            const res = await fetch(`http://localhost:5000/api/admin/users/${banModal.userId}/toggle-block`, {
+            const res = await fetch(`/api/admin/users/${banModal.userId}/toggle-block`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ban_reason: banModal.reason })
@@ -391,7 +391,7 @@ export default function Admin({ currentUser }) {
             onConfirm: async () => {
                 try {
                     setResolvingAppealId(appealId);
-                    const res = await fetch(`http://localhost:5000/api/admin/appeals/${appealId}/resolve`, {
+                    const res = await fetch(`/api/admin/appeals/${appealId}/resolve`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -488,8 +488,8 @@ export default function Admin({ currentUser }) {
 
         try {
             const url = editingVoucher
-                ? `http://localhost:5000/api/admin/vouchers/${editingVoucher.id}`
-                : 'http://localhost:5000/api/admin/vouchers';
+                ? `/api/admin/vouchers/${editingVoucher.id}`
+                : '/api/admin/vouchers';
             const method = editingVoucher ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
@@ -513,7 +513,7 @@ export default function Admin({ currentUser }) {
 
     const handleToggleVoucher = async (voucherId, currentActive, code) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/admin/vouchers/${voucherId}/toggle`, {
+            const res = await fetch(`/api/admin/vouchers/${voucherId}/toggle`, {
                 method: 'PATCH'
             });
             const data = await res.json();
@@ -538,7 +538,7 @@ export default function Admin({ currentUser }) {
             confirmColor: '#ff4d4f',
             onConfirm: async () => {
                 try {
-                    const res = await fetch(`http://localhost:5000/api/admin/vouchers/${voucherId}`, {
+                    const res = await fetch(`/api/admin/vouchers/${voucherId}`, {
                         method: 'DELETE'
                     });
                     const data = await res.json();

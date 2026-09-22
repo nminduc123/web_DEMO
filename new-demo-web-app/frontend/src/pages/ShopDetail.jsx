@@ -18,7 +18,7 @@ export default function ShopDetail({ currentUser, addToCart }) {
     // Kiểm tra xem quán đã được buyer yêu thích chưa
     useEffect(() => {
         if (currentUser && id) {
-            fetch(`http://localhost:5000/api/favorites/check?userId=${currentUser.id}&shopId=${id}`)
+            fetch(`/api/favorites/check?userId=${currentUser.id}&shopId=${id}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -39,7 +39,7 @@ export default function ShopDetail({ currentUser, addToCart }) {
         }
 
         try {
-            const res = await fetch('http://localhost:5000/api/favorites/toggle', {
+            const res = await fetch('/api/favorites/toggle', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUser.id, shopId: id })
@@ -65,7 +65,7 @@ export default function ShopDetail({ currentUser, addToCart }) {
             setErrorMsg('');
             try {
                 const role = currentUser?.role || 'user';
-                const res = await fetch(`http://localhost:5000/api/foods/${id}?role=${role}`);
+                const res = await fetch(`/api/foods/${id}?role=${role}`);
                 const data = await res.json();
 
                 if (data.error) {

@@ -50,7 +50,7 @@ export default function Register() {
 
     const submitRegistration = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/register', {
+            const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -110,7 +110,7 @@ export default function Register() {
         }
 
         try {
-            const res = await fetch('http://localhost:5000/api/verify-otp', {
+            const res = await fetch('/api/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 // Gửi OTP và thông tin người dùng lên để lưu vào DB (nếu OTP đúng)

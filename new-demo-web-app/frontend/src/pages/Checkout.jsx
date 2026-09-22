@@ -35,7 +35,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
     useEffect(() => {
         if (!sellerId && cart.length === 0) return;
         setLoadingRecs(true);
-        fetch(`http://localhost:5000/api/recommendations?sellerId=${sellerId || ''}`)
+        fetch(`/api/recommendations?sellerId=${sellerId || ''}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success && Array.isArray(data.recommendations)) {
@@ -50,8 +50,8 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
     // Tự động lọc bỏ các voucher mà tài khoản hiện tại đã từng sử dụng
     const fetchActiveVouchers = () => {
         const url = (currentUser && currentUser.id !== undefined && currentUser.id !== null)
-            ? `http://localhost:5000/api/vouchers/active?userId=${currentUser.id}`
-            : 'http://localhost:5000/api/vouchers/active';
+            ? `/api/vouchers/active?userId=${currentUser.id}`
+            : '/api/vouchers/active';
         fetch(url)
             .then(res => res.json())
             .then(data => {
@@ -142,7 +142,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
     const verifyCartPrices = async () => {
         if (cart.length === 0) return true;
         try {
-            const res = await fetch('http://localhost:5000/api/cart/verify', {
+            const res = await fetch('/api/cart/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cart })
@@ -238,7 +238,7 @@ export default function Checkout({ cart, updateQuantity, removeFromCart, clearCa
     const handlePlaceOrder = async () => {
         setIsSubmitting(true);
         try {
-            const res = await fetch('http://localhost:5000/api/checkout', {
+            const res = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

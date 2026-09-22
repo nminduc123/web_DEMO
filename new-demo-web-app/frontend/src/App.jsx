@@ -129,7 +129,7 @@ export default function App() {
         const checkStatus = async () => {
             try {
                 const queryParam = currentUser.email ? `email=${encodeURIComponent(currentUser.email)}` : `userId=${currentUser.id}`;
-                const res = await fetch(`http://localhost:5000/api/user/status?${queryParam}`);
+                const res = await fetch(`/api/user/status?${queryParam}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data.success) {

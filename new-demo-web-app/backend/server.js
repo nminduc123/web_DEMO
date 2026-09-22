@@ -668,7 +668,7 @@ app.post('/api/seller/toggle-shop', async (req, res) => {
 
 app.post('/api/seller/add-food', upload.single('image'), async (req, res) => {
     const { name, price, sellerId } = req.body;
-    const imgUrl = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : '';
+    const imgUrl = req.file ? `/uploads/${req.file.filename}` : '';
     try {
         const connection = await mysql.createConnection(dbConfig);
         if (await checkUserBlocked(connection, sellerId)) {
@@ -694,7 +694,7 @@ app.put('/api/seller/update-food/:id', upload.single('image'), async (req, res) 
             return res.status(403).json({ success: false, message: "Tài khoản của bạn đã bị khóa bởi Quản trị viên, không thể sửa món!" });
         }
         if (req.file) {
-            const imgUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+            const imgUrl = `/uploads/${req.file.filename}`;
             await connection.execute('UPDATE menu SET name = ?, price = ?, img = ? WHERE id = ?', [name, price, imgUrl, id]);
         } else {
             await connection.execute('UPDATE menu SET name = ?, price = ? WHERE id = ?', [name, price, id]);
@@ -743,7 +743,7 @@ app.delete('/api/seller/delete-food/:id', async (req, res) => {
 app.post('/api/seller/update-avatar', upload.single('avatar'), async (req, res) => {
     const { sellerId } = req.body;
     if (!req.file) return res.status(400).json({ success: false, message: "Vui lòng chọn ảnh!" });
-    const avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    const avatarUrl = `/uploads/${req.file.filename}`;
     try {
         const connection = await mysql.createConnection(dbConfig);
         if (await checkUserBlocked(connection, sellerId)) {
@@ -783,7 +783,7 @@ app.post('/api/user/update-avatar', upload.single('avatar'), async (req, res) =>
     if (!req.file) {
         return res.status(400).json({ success: false, message: "Vui lòng chọn ảnh đại diện!" });
     }
-    const avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    const avatarUrl = `/uploads/${req.file.filename}`;
     try {
         const connection = await mysql.createConnection(dbConfig);
         await connection.execute('UPDATE users SET avatar = ? WHERE id = ?', [avatarUrl, userId]);

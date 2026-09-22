@@ -14,7 +14,7 @@ export default function MyVouchers({ currentUser, setSelectedCategory }) {
         if (!currentUser?.id && currentUser?.id !== 0) return;
         setIsLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/user/my-vouchers?userId=${currentUser.id}`);
+            const res = await fetch(`/api/user/my-vouchers?userId=${currentUser.id}`);
             const data = await res.json();
             if (data.success && Array.isArray(data.vouchers)) {
                 setVouchers(data.vouchers);

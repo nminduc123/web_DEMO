@@ -22,7 +22,7 @@ export default function ForgotPassword() {
         const payloadValue = recoveryType === 'phone' ? `${countryCode}${contactValue}` : contactValue;
 
         try {
-            const res = await fetch('http://localhost:5000/api/forgot-password/send-otp', {
+            const res = await fetch('/api/forgot-password/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: recoveryType, value: payloadValue })
@@ -52,7 +52,7 @@ export default function ForgotPassword() {
         const payloadValue = recoveryType === 'phone' ? `${countryCode}${contactValue}` : contactValue;
 
         try {
-            const res = await fetch('http://localhost:5000/api/forgot-password/verify-otp', {
+            const res = await fetch('/api/forgot-password/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ value: payloadValue, otp })
@@ -82,7 +82,7 @@ export default function ForgotPassword() {
         const payloadValue = recoveryType === 'phone' ? `${countryCode}${contactValue}` : contactValue;
 
         try {
-            const res = await fetch('http://localhost:5000/api/forgot-password/reset', {
+            const res = await fetch('/api/forgot-password/reset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: recoveryType, value: payloadValue, newPassword })
