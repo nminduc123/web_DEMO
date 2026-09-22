@@ -17,11 +17,22 @@ const tempUsers = {}; // <-- Thêm biến này để lưu tạm thông tin đăn
 // Hàm kiểm tra rỗng an toàn hỗ trợ userId = 0 (tránh lỗi falsy trong JS)
 const isNullOrEmpty = (val) => val === undefined || val === null || val === '';
 
-// Đảm bảo tài khoản Quản trị viên luôn có id = 0 trong CSDL và bảng user_vouchers tồn tại
+// Đảm bảo tài khoản Quản trị viên tối cao luôn tồn tại cố định với id = 0 trong CSDL và bảng user_vouchers tồn tại
 (async () => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        await connection.execute("UPDATE users SET id = 0 WHERE email = 'admin@mbite.com' AND id != 0");
+        // Kiểm tra xem tài khoản admin@mbite.com đã có chưa, nếu chưa có thì tự động khởi tạo luôn
+        const [adminRows] = await connection.execute("SELECT id FROM users WHERE email = 'admin@mbite.com'");
+        if (adminRows.length === 0) {
+            await connection.execute(`
+                INSERT INTO users (id, email, phone, password, is_verified, role, full_name, avatar, is_blocked)
+                VALUES (0, 'admin@mbite.com', '0999999999', 'admin123', 1, 'admin', 'Quản Trị Viên Hệ Thống', 'https://cdn-icons-png.flaticon.com/512/2942/2942813.png', 0)
+            `);
+            console.log("👑 [HỆ THỐNG] Đã khởi tạo tài khoản Quản trị viên tối cao: admin@mbite.com (ID #0, pass: admin123)");
+        } else if (adminRows[0].id !== 0) {
+            await connection.execute("UPDATE users SET id = 0 WHERE email = 'admin@mbite.com'");
+        }
+
         await connection.execute(`
             CREATE TABLE IF NOT EXISTS user_vouchers (
                 id INT AUTO_INCREMENT PRIMARY KEY,

@@ -13,18 +13,29 @@ Dự án ứng dụng đặt đồ ăn trực tuyến M-Bite (Fullstack: Node.js
 ---
 
 ### 2. Cài đặt Cơ sở dữ liệu (Database)
-File cơ sở dữ liệu đã được xuất đầy đủ cấu trúc bảng và toàn bộ dữ liệu mẫu (Admin, Seller, Buyer, Menu, Voucher, Đơn hàng) tại thư mục `db/food_app.sql`.
 
+Hệ thống cung cấp sẵn 2 lựa chọn CSDL trong thư mục `db/`:
+
+- **Lựa chọn 1: CSDL Mới Sạch (Khuyên dùng) - `db/food_app.sql`**
+  - Đầy đủ cấu trúc bảng và hệ thống voucher sàn mặc định.
+  - **Không chứa bất kỳ tài khoản người dùng cũ nào**.
+  - **Chỉ có duy nhất tài khoản Quản trị viên tối cao cố định**: `admin@mbite.com` (mật khẩu: `admin123`, ID #0).
+  - Bạn có thể tự do bấm **Đăng ký** trên web để tạo các tài khoản Khách hàng (Buyer) hoặc Chủ quán (Seller) mới theo ý muốn.
+  
+- **Lựa chọn 2: CSDL Kèm Dữ Liệu Thử Nghiệm Mẫu - `db/sample_data.sql` (Tùy chọn)**
+  - Chứa sẵn 2 quán ăn có thực đơn ("Bếp Ăn Đêm", "Minh"), các tài khoản khách hàng và đơn hàng mẫu để test nhanh mà không cần tạo quán.
+
+#### Hướng dẫn import:
 - **Cách 1: Dùng phpMyAdmin / Laragon**
   1. Mở phpMyAdmin (`http://localhost/phpmyadmin`).
   2. Bấm vào tab **Import** (Nhập).
-  3. Chọn file `db/food_app.sql` trong thư mục dự án và bấm **Import** (hoặc tạo database `food_app` rồi import).
+  3. Chọn file `db/food_app.sql` (hoặc `db/sample_data.sql` nếu muốn nạp dữ liệu mẫu) và bấm **Import**.
 
 - **Cách 2: Dùng dòng lệnh (Terminal / PowerShell)**
   ```bash
   mysql -u root -p < db/food_app.sql
   ```
-  *(Nếu root không có mật khẩu thì chỉ cần gõ `mysql -u root < db/food_app.sql`)*
+  *(Nếu MySQL root không đặt mật khẩu: `mysql -u root < db/food_app.sql`)*
 
 ---
 
@@ -35,7 +46,8 @@ cd backend
 npm install
 npm start
 ```
-> Backend sẽ chạy tại: `http://localhost:5000`
+> Backend sẽ chạy tại: `http://localhost:5000`  
+> *(Hệ thống Backend có cơ chế tự động kiểm tra và khởi tạo tài khoản Admin tối cao nếu phát hiện CSDL trống).*
 
 ---
 
@@ -50,15 +62,14 @@ npm run dev
 
 ---
 
-## 🔑 Danh sách tài khoản thử nghiệm
+## 🔑 Tài khoản Quản trị viên (Cố định sẵn có)
 
-| Vai trò (Role) | Email đăng nhập | Mật khẩu | Mô tả quyền hạn |
+| Vai trò (Role) | Email đăng nhập | Mật khẩu | Quyền hạn |
 | :--- | :--- | :--- | :--- |
-| **🛡️ Quản trị viên (Admin)** | `admin@mbite.com` | `admin123` | ID #0. Toàn quyền quản lý: Phân quyền, Khóa/Mở tài khoản, Phát hành voucher sàn (phần trăm / tiền mặt), Duyệt phản hồi người dùng. |
-| **👨‍🍳 Chủ quán (Seller 1)** | `1@4.com` | `4` | Quán "Bếp Ăn Đêm": Quản lý món ăn, cập nhật giá/hết hàng/bật tắt món, Duyệt & xác nhận giao đơn hàng, Thống kê doanh thu. |
-| **👨‍🍳 Chủ quán (Seller 2)** | `1@3.com` | `3` | Quán "Minh": Quán ăn thứ hai trên hệ thống. |
-| **🛒 Khách hàng (Buyer 1)** | `1@2.com` | `2` | Khách mua hàng: Săn voucher, Lưu voucher vào ví (mỗi acc dùng 1 lần), Thêm giỏ hàng, Đặt món COD/VietQR, Theo dõi đơn và hủy đơn sau 5 phút. |
-| **🛒 Khách hàng (Buyer 2)** | `1@5.com` | `5` | Tài khoản khách hàng mẫu khác. |
+| **🛡️ Quản trị viên (Admin)** | `admin@mbite.com` | `admin123` | ID #0. Toàn quyền quản lý: Phân quyền, Khóa/Mở tài khoản, Phát hành voucher sàn, Duyệt phản hồi người dùng. |
+
+> 💡 **Tạo thêm tài khoản**: Bấm nút **Đăng ký** trên trang web (`/register`) để tự tạo tài khoản **Khách hàng** hoặc **Chủ quán (Seller)**.  
+> *(Nếu trước đó bạn import `db/sample_data.sql`, bạn có thể dùng thêm các tài khoản mẫu: Chủ quán `1@4.com` (pass `4`), `1@3.com` (pass `3`); Khách hàng `1@2.com` (pass `2`))*.
 
 ---
 
